@@ -1,0 +1,68 @@
+{
+  "name": "@keysqiu/mcpdog",
+  "version": "2.2.7",
+  "description": "MCPDog - MCP 服务器统一管理网关（SIE 运维团队维护版）",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && cd web && tsc && vite build",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "web": "node dist/index.js --web-port 38881",
+    "prepublishOnly": "npm run build"
+  },
+  "bin": {
+    "mcpdog": "./dist/cli/cli-main.js"
+  },
+  "files": [
+    "dist/**/*",
+    "web/dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@modelcontextprotocol/server-filesystem": "^2025.7.1",
+    "@modelcontextprotocol/server-puppeteer": "^2025.5.12",
+    "@playwright/mcp": "^0.0.33",
+    "axios": "^1.11.0",
+    "cors": "^2.8.5",
+    "cross-spawn": "^7.0.6",
+    "eventsource": "^4.0.0",
+    "express": "^4.21.2",
+    "node-fetch": "^3.3.2",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2",
+    "@types/cors": "^2.8.0",
+    "@types/cross-spawn": "^6.0.6",
+    "@types/express": "^4.17.0",
+    "@types/node": "^20.19.9",
+    "@types/ws": "^8.5.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "server-manager",
+    "ai-tools",
+    "automation",
+    "web-interface"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SIE-Operations-and-Maintenance-Team/mcpdog.git"
+  },
+  "author": "SIE-Operations-and-Maintenance-Team",
+  "license": "MIT"
+}

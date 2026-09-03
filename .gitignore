@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# All dotfiles and dot directories (except .gitignore and .dockerignore)
+.*
+!.gitignore
+!.dockerignore
+
+# Documentation and AI files
+CLAUDE.md
+docs/
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output
+
+# User data
+.mcpdog/
+
+# AI Memory (testing records and investigation findings)
+memory/
+
+# Temporary files
+tmp/
+temp/

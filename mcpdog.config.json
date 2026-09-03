@@ -1,0 +1,30 @@
+{
+  "servers": {
+    "example-stdio-server": {
+      "name": "example-stdio-server",
+      "enabled": false,
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@some/mcp-server"],
+      "timeout": 30000,
+      "retries": 3,
+      "toolsConfig": {
+        "mode": "blacklist"
+      }
+    },
+    "example-http-server": {
+      "name": "example-http-server",
+      "enabled": false,
+      "transport": "streamable-http",
+      "url": "http://127.0.0.1:61123/mcp",
+      "adminUrl": "http://127.0.0.1:61123/admin",
+      "toolsConfig": {
+        "mode": "blacklist"
+      }
+    }
+  },
+  "version": "2.0.0",
+  "logging": {
+    "level": "info"
+  }
+}
