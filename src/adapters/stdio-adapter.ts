@@ -80,7 +80,10 @@ export class StdioAdapter extends EventEmitter implements ServerAdapter {
       const spawnOptions: any = {
         stdio: ['pipe', 'pipe', 'pipe'],
         cwd: this.config.cwd,
-        env: processEnv
+        env: processEnv,
+        // 经 cmd.exe 启动 .cmd shim 时 Windows 默认会弹出可见的 CMD 窗口，
+        // 隐藏之；子进程 stdio 均为管道，无需可见控制台。
+        windowsHide: true
       };
 
       // Enhanced stdio handling for high-output processes like playwright
