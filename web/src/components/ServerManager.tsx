@@ -6,7 +6,6 @@ import { ServerListItem } from './ServerListItem';
 import { ServerPanel } from './ServerPanel';
 import { AddServerModal } from './AddServerModal';
 import { ClientConfigModal } from './ClientConfigModal';
-import { ThemeToggle } from './ThemeToggle';
 import { ServerStatus } from '../types/index';
 
 interface ServerManagerProps {
@@ -86,21 +85,18 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
   return (
     <div className="h-full flex flex-col">
       {/* Top action bar */}
-      <div className="bg-base-100 border-b border-base-300 px-6 py-4">
+      <div className="bg-base-100 border-b border-base-300 px-6 pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-base-content">MCP 服务器管理</h1>
-            <div className="flex items-center space-x-6 mt-2 text-sm text-base-content/70">
-              <span>总计: {mergedServers.length} 个服务器</span>
-              <span>已启用: {enabledServersCount}</span>
-              <span>已连接: {connectedServersCount}</span>
-              <span>已启用工具: {enabledToolsCount}</span>
+            <div className="flex items-center space-x-6 text-sm text-base-content/70">
+              <span>总计: <span className="font-semibold text-secondary">{mergedServers.length}</span> 个服务器</span>
+              <span>已启用: <span className="font-semibold text-accent">{enabledServersCount}</span></span>
+              <span>已连接: <span className="font-semibold text-info">{connectedServersCount}</span></span>
+              <span>已启用工具: <span className="font-semibold text-warning">{enabledToolsCount}</span></span>
             </div>
           </div>
 
           <div className="flex items-center space-x-3">
-            <ThemeToggle />
-
             {onLogout && (
               <button
                 onClick={onLogout}

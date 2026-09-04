@@ -2,13 +2,17 @@ import React from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
-export const ThemeToggle: React.FC = () => {
+interface ThemeToggleProps {
+  className?: string;
+}
+
+export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className = '' }) => {
   const { theme, toggleTheme } = useTheme();
 
   return (
     <button
       onClick={toggleTheme}
-      className="btn btn-ghost btn-sm btn-circle"
+      className={`btn btn-ghost btn-sm btn-circle ${className}`}
       title={theme === 'light' ? '切换到深色模式' : '切换到浅色模式'}
     >
       {theme === 'light' ? (

@@ -8,6 +8,7 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
+import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { MCPDogDaemon } from './mcpdog-daemon.js';
 import { ConfigManager } from '../config/config-manager.js';
@@ -119,6 +120,9 @@ export class DaemonWebServer {
     
     // System status API
     router.get('/status', this.handleGetStatus.bind(this));
+
+    // System info API (version & config path for header display)
+    router.get('/system/info', this.handleGetSystemInfo.bind(this));
     
     // Server management API
     router.get('/servers', this.handleGetServers.bind(this));
@@ -362,6 +366,23 @@ export class DaemonWebServer {
     } catch (error) {
       res.status(500).json({
         error: '获取状态失败',
+        message: (error as Error).message
+      });
+    }
+  }
+
+  // Header 展示用的系统信息：版本号与配置文件路径
+  private async handleGetSystemInfo(req: express.Request, res: express.Response) {
+    try {
+      const packagePath = path.join(__dirname, '../../package.json');
+      const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8'));
+      res.json({
+        version: packageJson.version,
+        configPath: this.configManager.getConfigPath()
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: '获取系统信息失败',
         message: (error as Error).message
       });
     }

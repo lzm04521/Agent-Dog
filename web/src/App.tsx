@@ -5,6 +5,7 @@ import { useAppStore } from './store/useAppStore';
 import { useConfigStore } from './store/configStore';
 import { apiClient } from './utils/api';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { Header } from './components/Header';
 
 function App() {
   const { connected } = useAppStore();
@@ -92,9 +93,13 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-base-100">
+      {/* 锁定视口高度，整页不滚动；左右栏各自内部滚动 */}
+      <div className="h-screen overflow-hidden bg-base-100 flex flex-col">
+        {/* Header */}
+        <Header />
+
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 overflow-hidden w-full px-4 sm:px-6 py-8">
           {/* Global Status Alert */}
           {!connected && (
             <div className="alert alert-warning mb-8">

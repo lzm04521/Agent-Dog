@@ -82,9 +82,9 @@ export const ServerLogs: React.FC<{ serverName: string }> = ({ serverName }) => 
   };
 
   return (
-    <div className="card bg-base-200">
+    <div className="card bg-base-200 h-full flex flex-col">
       {/* Controls */}
-      <div className="p-3 border-b border-base-300 flex items-center justify-between">
+      <div className="p-3 border-b border-base-300 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-4">
           <select 
             value={logLevel}
@@ -112,8 +112,8 @@ export const ServerLogs: React.FC<{ serverName: string }> = ({ serverName }) => 
         </div>
       </div>
 
-      {/* Log Content */}
-      <div className="font-mono text-sm p-4 h-96 overflow-y-auto bg-base-100">
+      {/* Log Content：自适应填满剩余高度 */}
+      <div className="font-mono text-sm p-4 flex-1 min-h-0 overflow-y-auto bg-base-100">
         {isLoadingHistory ? (
           <div className="text-center py-8 text-base-content/60">
             <p className="mb-2">📥 正在加载历史日志...</p>

@@ -159,6 +159,24 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({ server }) => {
 
   return (
     <div className="p-6">
+      {/* Tool control instructions（置于表头上方） */}
+      {tools.length > 0 && (
+        <div className="mb-6 alert alert-info">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-5 w-5" />
+            <div className="text-sm">
+              <p className="font-medium mb-1">关于工具控制</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>已启用的工具将对 MCP 客户端可见可用</li>
+                <li>已禁用的工具将从 MCP 客户端隐藏</li>
+                <li>更改工具状态后，MCP 客户端可能需要重新连接才能看到变化</li>
+                <li>某些工具可能依赖其他工具，请谨慎禁用</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tool control header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -312,24 +330,6 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({ server }) => {
           ))
         )}
       </div>
-
-      {/* Bottom instructions */}
-      {tools.length > 0 && (
-        <div className="mt-8 alert alert-info">
-          <div className="flex items-start space-x-3">
-            <AlertCircle className="h-5 w-5" />
-            <div className="text-sm">
-              <p className="font-medium mb-1">关于工具控制</p>
-              <ul className="list-disc list-inside space-y-1">
-                <li>已启用的工具将对 MCP 客户端可见可用</li>
-                <li>已禁用的工具将从 MCP 客户端隐藏</li>
-                <li>更改工具状态后，MCP 客户端可能需要重新连接才能看到变化</li>
-                <li>某些工具可能依赖其他工具，请谨慎禁用</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

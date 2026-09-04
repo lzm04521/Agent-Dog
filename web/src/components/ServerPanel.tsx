@@ -30,6 +30,7 @@ export const ServerPanel: React.FC<ServerPanelProps> = ({ server, refreshServerT
   const [isEditing, setIsEditing] = useState(false);
   const [editedConfig, setEditedConfig] = useState<any>(server);
   const [isToggling, setIsToggling] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [nameValidation, setNameValidation] = useState<{ valid: boolean; error?: string; suggestions?: string[] }>({ valid: true });
   
   const { 
@@ -114,6 +115,27 @@ export const ServerPanel: React.FC<ServerPanelProps> = ({ server, refreshServerT
       // Delay removing loading state to give user time to see connection process
       setTimeout(() => {
         setIsToggling(false);
+      }, 1500);
+    }
+  };
+
+  // 重试连接：复用启用开关的重连机制——禁用移除旧适配器，再启用重建并发起连接
+  const handleRetryConnection = async () => {
+    if (!server?.name || isRetrying) {
+      return;
+    }
+    setIsRetrying(true);
+    try {
+      if (server.enabled) {
+        await toggleServer(server?.name || '');
+      }
+      await toggleServer(server?.name || '', () => refreshServerTools(server?.name));
+    } catch (error) {
+      console.error('重试连接失败:', error);
+      alert(`重试连接失败: ${(error as Error).message}`);
+    } finally {
+      setTimeout(() => {
+        setIsRetrying(false);
       }, 1500);
     }
   };
@@ -370,6 +392,20 @@ export const ServerPanel: React.FC<ServerPanelProps> = ({ server, refreshServerT
               <ExternalLink className="h-5 w-5" />
             </a>
           )}
+
+          {/* Retry connection button */}
+          <button
+            onClick={handleRetryConnection}
+            className="btn btn-ghost btn-square"
+            title="重试连接"
+            disabled={isRetrying}
+          >
+            {isRetrying ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-5 w-5" />
+            )}
+          </button>
 
           {/* Delete button */}
           <button

@@ -10,17 +10,20 @@ interface ServerListItemProps {
 
 export const ServerListItem: React.FC<ServerListItemProps> = React.memo(({ server, selectedServer, setSelectedServer }) => {
   console.log(`[ServerListItem] Rendering: ${server.name}`);
+  const isSelected = selectedServer === server.name;
 
   return (
     <div
       key={server.name}
-      className={`p-4 cursor-pointer hover:bg-base-200 transition-colors relative ${
-        selectedServer === server.name ? 'bg-primary/10' : ''
+      className={`p-4 cursor-pointer transition-colors relative ${
+        isSelected
+          ? 'bg-primary/15 ring-1 ring-inset ring-primary/50'
+          : 'hover:bg-base-200'
       }`}
       onClick={() => setSelectedServer(server.name)}
     >
       {/* Blue border for selected item */}
-      {selectedServer === server.name && (
+      {isSelected && (
         <div className="absolute top-0 right-0 bottom-0 w-1 bg-primary"></div>
       )}
 
@@ -29,7 +32,7 @@ export const ServerListItem: React.FC<ServerListItemProps> = React.memo(({ serve
           server?.connected ? 'bg-green-500' :
           server?.enabled ? 'bg-yellow-500' : 'bg-gray-400'
         }`} />
-        <h3 className="font-medium text-base-content truncate">{server?.name || '未知'}</h3>
+        <h3 className={`truncate ${isSelected ? 'font-semibold text-primary' : 'font-medium text-base-content'}`}>{server?.name || '未知'}</h3>
       </div>
 
       <div className="text-sm text-base-content/70 mb-2">

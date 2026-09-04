@@ -40,23 +40,13 @@ MCPDog 是一个 MCP（Model Context Protocol）服务器统一管理网关：�
 
 ## 🚀 快速开始
 
-### 前置要求
-
-- Node.js ≥ 18
-- npm
-
-### 安装与启动
+前置要求：Node.js ≥ 18。无需安装，npx 直接启动：
 
 ```bash
-# 方式一：npx 直接运行（推荐）
 npx @keysqiu/mcpdog@latest daemon start --web-port 38881
-
-# 方式二：全局安装
-npm install -g @keysqiu/mcpdog
-mcpdog daemon start --web-port 38881
 ```
 
-启动后浏览器打开 `http://localhost:38881` 即可看到 Web 管理界面。
+启动后浏览器打开 `http://localhost:38881` 即可看到 Web 管理界面，在界面里添加并管理子服务器。
 
 ### 客户端接入（以 Claude Code 为例）
 
@@ -73,7 +63,7 @@ mcpdog daemon start --web-port 38881
 }
 ```
 
-> 前提：先用 CLI 或 Web 界面把 daemon 跑起来并配好子服务器，客户端连的是 MCPDog 聚合入口。
+> 客户端连的是 MCPDog 聚合入口，前提是 daemon 已启动并配好子服务器。
 
 ## 📖 常用命令
 

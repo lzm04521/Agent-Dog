@@ -26,7 +26,7 @@ export const ClientConfigModal: React.FC = () => {
     "mcpServers": {
       "mcpdog": {
         "command": "npx",
-        "args": ["mcpdog@latest"]
+        "args": ["@keysqiu/mcpdog@latest"]
       }
     }
   };
