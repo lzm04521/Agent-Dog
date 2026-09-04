@@ -7,9 +7,13 @@ import { ConfigManager } from '../../config/config-manager.js';
 import { MCPDogDaemon } from '../../daemon/mcpdog-daemon.js';
 import { DaemonClient } from '../../daemon/daemon-client.js';
 import fs from 'fs/promises';
+import { readFileSync } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { createServer } from 'net';
 import os from 'os';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export class DaemonCommands {
   private configManager: ConfigManager;
@@ -92,12 +96,36 @@ export class DaemonCommands {
     try {
       // Ensure ~/.mcpdog directory exists
       await this.ensureMCPDogDir();
-      
-      // Check if daemon is already running
-      const isRunning = await this.isDaemonRunning(pidFile);
-      if (isRunning) {
-        CLIUtils.error('Daemon is already running');
-        process.exit(1);
+
+      // Check if daemon is already running；版本不同（或旧格式 PID 文件无版本信息）时自动升级重启
+      const runningInfo = await this.getDaemonInfoFromFile(pidFile);
+      if (runningInfo) {
+        let running = false;
+        try {
+          process.kill(runningInfo.pid, 0);
+          running = true;
+        } catch {
+          running = false;
+        }
+
+        if (running) {
+          const currentVersion = this.readPackageVersion();
+          const runningVersion = runningInfo.version;
+
+          if (runningVersion && runningVersion === currentVersion) {
+            CLIUtils.error(`Daemon is already running (PID: ${runningInfo.pid}, v${runningVersion})`);
+            process.exit(1);
+          }
+
+          CLIUtils.info(`Detected running daemon v${runningVersion ?? 'unknown (old format)'} (PID: ${runningInfo.pid}), upgrading to v${currentVersion}...`);
+          await this.stopDaemonByPid(runningInfo.pid);
+          try {
+            await fs.unlink(pidFile);
+          } catch {
+            // PID 文件不存在则忽略
+          }
+          CLIUtils.success(`Old daemon stopped, starting v${currentVersion}...`);
+        }
       }
 
       // If web-port is not specified, default to starting web server with auto port detection
@@ -161,7 +189,7 @@ export class DaemonCommands {
 
   async stop(args: string[], options: any): Promise<void> {
     const pidFile = options['pid-file'] || this.getDefaultPidFile();
-    
+
     try {
       const pid = await this.getPidFromFile(pidFile);
       if (!pid) {
@@ -169,26 +197,7 @@ export class DaemonCommands {
         process.exit(1);
       }
 
-      // Send stop signal
-      process.kill(pid, 'SIGTERM');
-      
-      // Wait for process to stop
-      let attempts = 0;
-      while (attempts < 30) {
-        try {
-          process.kill(pid, 0); // Check if process still exists
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          attempts++;
-        } catch (error) {
-          // Process has stopped
-          break;
-        }
-      }
-
-      if (attempts >= 30) {
-        CLIUtils.warn('Daemon did not stop within expected time, forcing termination...');
-        process.kill(pid, 'SIGKILL');
-      }
+      await this.stopDaemonByPid(pid);
 
       // Clean up PID file
       try {
@@ -198,10 +207,60 @@ export class DaemonCommands {
       }
 
       CLIUtils.success('Daemon stopped');
-      
+
     } catch (error) {
       CLIUtils.error('Failed to stop daemon:', (error as Error).message);
       process.exit(1);
+    }
+  }
+
+  // 重启 daemon：先停掉正在运行的实例（若有），再按 start 流程启动
+  async restart(args: string[], options: any): Promise<void> {
+    const pidFile = options['pid-file'] || this.getDefaultPidFile();
+
+    const info = await this.getDaemonInfoFromFile(pidFile);
+    if (info) {
+      let running = false;
+      try {
+        process.kill(info.pid, 0);
+        running = true;
+      } catch {
+        running = false;
+      }
+      if (running) {
+        CLIUtils.info(`Stopping daemon (PID: ${info.pid})...`);
+        await this.stopDaemonByPid(info.pid);
+        try {
+          await fs.unlink(pidFile);
+        } catch {
+          // PID 文件不存在则忽略
+        }
+        CLIUtils.success('Daemon stopped');
+      }
+    }
+
+    await this.start(args, options);
+  }
+
+  // 停止指定 PID 的 daemon：SIGTERM 优雅退出，超时 SIGKILL 兜底
+  private async stopDaemonByPid(pid: number): Promise<void> {
+    process.kill(pid, 'SIGTERM');
+
+    let attempts = 0;
+    while (attempts < 30) {
+      try {
+        process.kill(pid, 0); // Check if process still exists
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        attempts++;
+      } catch (error) {
+        // Process has stopped
+        break;
+      }
+    }
+
+    if (attempts >= 30) {
+      CLIUtils.warn('Daemon did not stop within expected time, forcing termination...');
+      process.kill(pid, 'SIGKILL');
     }
   }
 
@@ -361,25 +420,42 @@ ${CLIUtils.colorize('Quick Start:', 'cyan')}
     }
   }
 
-  private async isDaemonRunning(pidFile: string): Promise<boolean> {
+  // 读取 PID 文件，兼容两种格式：
+  // 新格式：{"pid":123,"version":"1.0.4"}（含版本号，用于升级检测）
+  // 旧格式：纯数字 PID（无版本信息）
+  private async getDaemonInfoFromFile(pidFile: string): Promise<{ pid: number; version: string | null } | null> {
     try {
-      const pid = await this.getPidFromFile(pidFile);
-      if (!pid) return false;
-      
-      // Check if process exists
-      process.kill(pid, 0);
-      return true;
+      const content = (await fs.readFile(pidFile, 'utf-8')).trim();
+      if (!content) return null;
+
+      if (content.startsWith('{')) {
+        const info = JSON.parse(content);
+        if (typeof info.pid === 'number') {
+          return { pid: info.pid, version: info.version ?? null };
+        }
+        return null;
+      }
+
+      const pid = parseInt(content);
+      return isNaN(pid) ? null : { pid, version: null };
     } catch (error) {
-      return false;
+      return null;
     }
   }
 
   private async getPidFromFile(pidFile: string): Promise<number | null> {
+    const info = await this.getDaemonInfoFromFile(pidFile);
+    return info?.pid ?? null;
+  }
+
+  // 读取当前包版本号（src/cli/commands 与 dist/cli/commands 均为三层到包根）
+  private readPackageVersion(): string {
     try {
-      const pidStr = await fs.readFile(pidFile, 'utf-8');
-      return parseInt(pidStr.trim());
+      const packagePath = path.join(__dirname, '../../../package.json');
+      const packageJson = JSON.parse(readFileSync(packagePath, 'utf-8'));
+      return packageJson.version || 'unknown';
     } catch (error) {
-      return null;
+      return 'unknown';
     }
   }
 
@@ -398,6 +474,15 @@ ${CLIUtils.colorize('Quick Start:', 'cyan')}
         description: 'Stop MCPDog daemon',
         handler: this.stop.bind(this),
         options: {
+          'pid-file': 'PID file path'
+        }
+      },
+      'daemon:restart': {
+        description: 'Restart MCPDog daemon',
+        handler: this.restart.bind(this),
+        options: {
+          'daemon-port': 'Daemon IPC port (default: 9999)',
+          'web-port': 'Enable Web interface port',
           'pid-file': 'PID file path'
         }
       },

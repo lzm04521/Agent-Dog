@@ -71,6 +71,7 @@ npx @keysqiu/mcpdog@latest daemon start --web-port 38881
 npx @keysqiu/mcpdog@latest status              # 查看整体状态
 npx @keysqiu/mcpdog@latest daemon start --web-port 38881   # 启动 daemon + Web 界面
 npx @keysqiu/mcpdog@latest daemon stop         # 停止 daemon
+npx @keysqiu/mcpdog@latest daemon restart      # 重启 daemon（版本更新后直接重跑 start 也会自动升级重启）
 npx @keysqiu/mcpdog@latest config list          # 列出已配置的服务器
 npx @keysqiu/mcpdog@latest config add my-server "npx @some/mcp-server@latest" --auto-detect
                                                 # 添加子服务器（自动识别传输协议）

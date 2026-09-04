@@ -11,6 +11,9 @@ import { ConfigManager } from '../config/config-manager.js';
 import { StreamableHttpMCPServer } from '../streamable-http-server.js';
 import path from 'path';
 import fs from 'fs/promises';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export interface DaemonConfig {
   configPath: string;
@@ -384,9 +387,16 @@ export class MCPDogDaemon extends EventEmitter {
         }
       }
 
-      // Write PID file
+      // Write PID file（含版本号，供 daemon start 检测版本差异自动升级重启）
       if (this.config.pidFile) {
-        await fs.writeFile(this.config.pidFile, process.pid.toString());
+        let version = 'unknown';
+        try {
+          const pkg = JSON.parse(await fs.readFile(path.join(__dirname, '../../package.json'), 'utf-8'));
+          if (pkg.version) version = pkg.version;
+        } catch {
+          // 版本读取失败不阻塞启动
+        }
+        await fs.writeFile(this.config.pidFile, JSON.stringify({ pid: process.pid, version }));
       }
 
       this.isRunning = true;

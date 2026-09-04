@@ -124,6 +124,9 @@ export class CLICommandRouter {
       case 'stop':
         await this.daemonCommands.stop(args.slice(1), options);
         break;
+      case 'restart':
+        await this.daemonCommands.restart(args.slice(1), options);
+        break;
       case 'status':
         await this.daemonCommands.status(args.slice(1), options);
         break;
@@ -132,7 +135,7 @@ export class CLICommandRouter {
         break;
       default:
         CLIUtils.error(`Unknown daemon command: ${subcommand}`);
-        CLIUtils.info('Available commands: start, stop, status, reload');
+        CLIUtils.info('Available commands: start, stop, restart, status, reload');
         process.exit(1);
     }
   }
@@ -177,7 +180,11 @@ ${CLIUtils.colorize('Examples:', 'yellow')}
   mcpdog daemon start --web-port 38881    # Start daemon with specific web port
   mcpdog daemon status                   # View status
   mcpdog daemon reload                   # Reload config
+  mcpdog daemon restart                  # Restart daemon (stop then start)
   mcpdog daemon stop                     # Stop daemon
+
+Note: starting a newer version while an older daemon is running will
+automatically stop the old one and start the new version (auto upgrade).
 `,
 
       config: `
