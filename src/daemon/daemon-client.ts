@@ -22,6 +22,7 @@ export class DaemonClient extends EventEmitter {
   private reconnectTimer?: NodeJS.Timeout;
   private requestCounter = 0;
   private pendingRequests = new Map<string, (response: any) => void>();
+  private recvBuffer = '';
 
   constructor(config: DaemonClientConfig) {
     super();
@@ -54,8 +55,16 @@ export class DaemonClient extends EventEmitter {
     });
 
     this.socket.on('data', (data) => {
-      const lines = data.toString().split('\n').filter(line => line.trim());
-      lines.forEach(line => {
+      // TCP 分片缓冲：单条 JSON 消息可能超过单个 TCP chunk（约 64KB，如聚合全部工具后的
+      // tools/list 响应），被拆到多个 data 事件；必须跨 chunk 拼接后再按行切分，
+      // 否则大响应永远解析失败，且 silent 模式下错误被吞、请求方一直等到超时
+      this.recvBuffer += data.toString();
+      let newlineIndex: number;
+      while ((newlineIndex = this.recvBuffer.indexOf('\n')) >= 0) {
+        const line = this.recvBuffer.slice(0, newlineIndex).trim();
+        this.recvBuffer = this.recvBuffer.slice(newlineIndex + 1);
+        if (!line) continue;
+
         try {
           const message = JSON.parse(line);
           this.handleMessage(message);
@@ -64,7 +73,7 @@ export class DaemonClient extends EventEmitter {
             console.error('[DAEMON-CLIENT] Invalid message:', error);
           }
         }
-      });
+      }
     });
 
     this.socket.on('close', () => {

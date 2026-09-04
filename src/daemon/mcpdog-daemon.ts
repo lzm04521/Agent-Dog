@@ -136,16 +136,23 @@ export class MCPDogDaemon extends EventEmitter {
       this.clients.set(clientId, client);
 
       // Handle client messages
+      // Per-connection TCP fragmentation buffer (same mechanism as DaemonClient)
+      let recvBuffer = '';
       socket.on('data', (data) => {
-        const lines = data.toString().split('\n').filter(line => line.trim());
-        lines.forEach(line => {
+        recvBuffer += data.toString();
+        let newlineIndex: number;
+        while ((newlineIndex = recvBuffer.indexOf('\n')) >= 0) {
+          const line = recvBuffer.slice(0, newlineIndex).trim();
+          recvBuffer = recvBuffer.slice(newlineIndex + 1);
+          if (!line) continue;
+
           try {
             const message = JSON.parse(line);
             this.handleClientMessage(clientId, message);
           } catch (error) {
             console.error(`[DAEMON] Invalid message from ${clientId}:`, error);
           }
-        });
+        }
       });
 
       socket.on('close', () => {
