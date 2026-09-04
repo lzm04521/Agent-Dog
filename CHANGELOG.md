@@ -2,6 +2,11 @@
 
 本项目所有显著变更都会记录在此文件中。
 
+## [1.0.3] - 2026-09-04
+
+- **修复（关键）**：MCP 客户端（Claude Code 等）连接 mcpdog 后 `tools/list` 超时（`connected · tools fetch failed`）的问题。proxy 与 daemon 间自定义 TCP 行协议的解析不做跨 chunk 缓冲，聚合工具数较多时 `tools/list` 响应（约 112KB）超过单个 TCP 分片（约 64KB），被拆分后各片段 `JSON.parse` 必然失败，且 stdio proxy 为 silent 模式错误被静默吞掉，请求方一直等到超时。现改为跨 chunk 拼接后再按行切分。该缺陷继承自原版（npm `mcpdog@2.2.6` 同样存在），工具数量少、响应未超过单个分片时不触发。
+- **修复**：daemon 侧解析客户端请求存在同款隐患（如 `tools/call` 携带大参数时），同步增加每连接独立的分片缓冲。
+
 ## [1.0.2] - 2026-09-03
 
 - **修复**：Windows 上 stdio 子服务器经 `cmd.exe` 启动时会弹出大量可见 CMD 窗口的问题。子进程 spawn 增加 `windowsHide: true`，后台静默启动，stdio 管道通信不受影响。
