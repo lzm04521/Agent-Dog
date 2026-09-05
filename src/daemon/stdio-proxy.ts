@@ -6,12 +6,23 @@
 import { createInterface } from 'readline';
 import { DaemonClient } from './daemon-client.js';
 
+export interface StdioProxyOptions {
+  /**
+   * daemon 连接持续被拒（如被意外杀死）时的自救回调，
+   * 由调用方传入重新拉起 daemon 的逻辑；不传则仅被动重连
+   */
+  autoRestart?: () => void | Promise<void>;
+}
+
 export class StdioProxy {
   private daemonClient: DaemonClient;
   private readline: any;
   private isReady = false;
+  // 连续 ECONNREFUSED 计数与自拉起冷却，防止频繁 spawn
+  private connFailures = 0;
+  private lastRespawnAt = 0;
 
-  constructor(daemonPort?: number) {
+  constructor(daemonPort?: number, private options: StdioProxyOptions = {}) {
     this.daemonClient = new DaemonClient({
       port: daemonPort || 9999,
       clientType: 'stdio',
@@ -56,6 +67,19 @@ export class StdioProxy {
       // Only output to stderr for serious errors
       if (!this.isReady) {
         process.stderr.write(`MCPDog connection error: ${error.message}\n`);
+      }
+
+      // 连接被持续拒绝（daemon 已死，被动重连永远失败）时触发重新拉起
+      const code = (error as NodeJS.ErrnoException).code || '';
+      if (String(code).includes('ECONNREFUSED') || String(error.message).includes('ECONNREFUSED')) {
+        this.connFailures++;
+        const cooldownOver = Date.now() - this.lastRespawnAt > 30000;
+        if (this.connFailures >= 3 && cooldownOver && this.options.autoRestart) {
+          this.connFailures = 0;
+          this.lastRespawnAt = Date.now();
+          process.stderr.write('[MCPDog] daemon unreachable, attempting to restart daemon...\n');
+          void this.options.autoRestart();
+        }
       }
     });
 

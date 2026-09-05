@@ -2,6 +2,13 @@
 
 本项目所有显著变更都会记录在此文件中。
 
+## [1.0.6] - 2026-09-05
+
+- **新增**：`mcpdog service install/uninstall/status` 命令，一键注册/取消 daemon 开机自启（Windows 启动文件夹 VBS 隐藏窗口启动、macOS LaunchAgent、Linux systemd user unit），使 38881 dashboard 与 IPC 9999 的生命周期与 MCP 会话彻底解耦——重启电脑后不再需要新开会话才能访问管理界面。
+- **新增**：长会话自愈。daemon 意外退出后，stdio proxy 被动重连连续 3 次被拒（30 秒冷却）时自动重新拉起 daemon，会话内 MCP 工具自动恢复。
+- **修复**：proxy 判断 daemon 是否运行仅凭 `kill(pid, 0)`，Windows 重启后 PID 被无关进程复用时会误判"daemon 在运行"而跳过拉起，导致 MCP 连接失败；现增加 daemon IPC 端口握手双重校验。
+- **优化**：proxy 自动拉起 daemon 后由固定等待 2 秒改为轮询端口就绪（至多 15 秒），避免 npx 冷启动较慢时首次连接失败导致 proxy 直接退出。
+
 ## [1.0.5] - 2026-09-04
 
 - **新增**：daemon 版本更新自动接管。PID 文件现在记录 daemon 版本号，`daemon start` 检测到已有实例运行且版本不同（或为无版本信息的旧格式 PID 文件）时，自动停止旧实例并以新版本启动——版本更新后重跑一次启动命令即可完成升级，不再被 "Daemon is already running" 挡住导致老版本继续伺服。版本相同时仍拒绝重复启动。

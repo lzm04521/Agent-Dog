@@ -12,6 +12,7 @@ import { AuditCommands } from './commands/audit-commands.js';
 import { ProxyCommand } from './commands/proxy-command.js';
 import { StartCommand } from './commands/start-command.js';
 import { DaemonCommands } from './commands/daemon-commands.js';
+import { ServiceCommands } from './commands/service-commands.js';
 
 export class CLICommandRouter {
   private configManager: ConfigManager;
@@ -23,6 +24,7 @@ export class CLICommandRouter {
   private proxyCommand: ProxyCommand;
   private startCommand: StartCommand;
   private daemonCommands: DaemonCommands;
+  private serviceCommands: ServiceCommands;
 
   constructor(configPath?: string) {
     this.configManager = new ConfigManager(configPath);
@@ -36,6 +38,7 @@ export class CLICommandRouter {
     this.proxyCommand = new ProxyCommand(this.configManager);
     this.startCommand = new StartCommand(this.configManager);
     this.daemonCommands = new DaemonCommands(this.configManager.getConfigPath());
+    this.serviceCommands = new ServiceCommands(this.configManager);
   }
 
   async executeCommand(command: string, args: string[], options: Record<string, any>): Promise<void> {
@@ -43,7 +46,7 @@ export class CLICommandRouter {
 
     try {
       // These commands do not need to load config file, as they communicate directly with the daemon
-      const noConfigCommands = ['proxy', 'serve', 'status', 'stop'];
+      const noConfigCommands = ['proxy', 'serve', 'status', 'stop', 'service'];
       if (!noConfigCommands.includes(command)) {
         // Load config
         await this.configManager.loadConfig();
@@ -69,6 +72,10 @@ export class CLICommandRouter {
 
         case 'daemon':
           await this.executeDaemonCommand(args, options);
+          break;
+
+        case 'service':
+          await this.serviceCommands.execute(args, options);
           break;
 
         case 'config':
@@ -185,6 +192,18 @@ ${CLIUtils.colorize('Examples:', 'yellow')}
 
 Note: starting a newer version while an older daemon is running will
 automatically stop the old one and start the new version (auto upgrade).
+`,
+
+      service: `
+${CLIUtils.colorize('mcpdog service', 'cyan')} - Daemon OS auto-start management
+
+${CLIUtils.colorize('Usage:', 'yellow')}
+  mcpdog service <subcommand>
+
+${CLIUtils.colorize('Subcommands:', 'yellow')}
+  install                Register daemon to start on login
+  uninstall              Remove the auto-start registration
+  status                 Show whether auto-start is installed
 `,
 
       config: `
