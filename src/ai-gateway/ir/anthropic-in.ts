@@ -81,7 +81,7 @@ function parseMessage(m: any): IRMessage {
 }
 
 // image 块：source.source_type === 'base64' 取 media_type/data；URL 图标不支持，跳过
-function parseImage(block: any): IRPart | null {
+function parseImage(block: any): IRPart {
   const source = block.source;
   if (!source || source.type !== 'base64') {
     return { kind: 'text', text: '[unsupported image source]' };

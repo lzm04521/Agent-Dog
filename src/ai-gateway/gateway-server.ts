@@ -9,6 +9,8 @@ import { anthropicError } from './anthropic-errors.js';
 import { resolveModel, ModelRouteError } from './model-router.js';
 import { passthroughMessages } from './passthrough.js';
 import { handleCountTokens } from './count-tokens.js';
+import { handleIRChannel } from './ir-channel.js';
+import { openaiCodec } from './dialects.js';
 
 const DEFAULT_PORT = 62125;
 const DEFAULT_HOST = '127.0.0.1';
@@ -65,9 +67,11 @@ export class AiGatewayServer {
           void passthroughMessages(req, res, provider, upstreamModel);
           break;
         case 'openai':
+          void handleIRChannel(req, res, provider, upstreamModel, openaiCodec);
+          break;
         case 'gemini':
-          // IR 转换通道在后续任务接入
-          anthropicError(res, 501, 'api_error', `dialect "${provider.dialect}" not yet supported`);
+          // Task 10 接入
+          anthropicError(res, 501, 'api_error', 'dialect "gemini" not yet supported');
           break;
       }
     } catch (error) {
