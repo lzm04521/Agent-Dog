@@ -140,11 +140,25 @@ export class ConfigManager extends EventEmitter {
       // Ensure the directory exists
       const configDir = dirname(this.configPath);
       await fs.mkdir(configDir, { recursive: true });
-      
+
       await fs.writeFile(this.configPath, JSON.stringify(this.config, null, 2));
     } catch (error) {
       throw new Error(`Failed to save config to ${this.configPath}: ${(error as Error).message}`);
     }
+  }
+
+  // Web 界面端口持久化：daemon start 显式 --web-port 时保存，后续启动免传参
+  getWebPort(): number | null {
+    return this.config?.web?.port ?? null;
+  }
+
+  async setWebPort(port: number): Promise<void> {
+    if (!this.config.web) {
+      this.config.web = { enabled: true, port, host: 'localhost' };
+    } else {
+      this.config.web.port = port;
+    }
+    await this.saveConfig();
   }
 
   getConfig(): MCPDogConfig {

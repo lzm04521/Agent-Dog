@@ -12,6 +12,7 @@ import { AuditCommands } from './commands/audit-commands.js';
 import { ProxyCommand } from './commands/proxy-command.js';
 import { StartCommand } from './commands/start-command.js';
 import { DaemonCommands } from './commands/daemon-commands.js';
+import { AutostartCommand } from './commands/autostart-command.js';
 
 export class CLICommandRouter {
   private configManager: ConfigManager;
@@ -23,10 +24,11 @@ export class CLICommandRouter {
   private proxyCommand: ProxyCommand;
   private startCommand: StartCommand;
   private daemonCommands: DaemonCommands;
+  private autostartCommand: AutostartCommand;
 
   constructor(configPath?: string) {
     this.configManager = new ConfigManager(configPath);
-    
+
     // Initialize various command handlers
     this.configCommands = new ConfigCommands(this.configManager);
     this.detectCommands = new DetectCommands(this.configManager);
@@ -36,6 +38,7 @@ export class CLICommandRouter {
     this.proxyCommand = new ProxyCommand(this.configManager);
     this.startCommand = new StartCommand(this.configManager);
     this.daemonCommands = new DaemonCommands(this.configManager.getConfigPath());
+    this.autostartCommand = new AutostartCommand();
   }
 
   async executeCommand(command: string, args: string[], options: Record<string, any>): Promise<void> {
@@ -133,9 +136,12 @@ export class CLICommandRouter {
       case 'reload':
         await this.daemonCommands.reload(args.slice(1), options);
         break;
+      case 'autostart':
+        await this.autostartCommand.execute(args.slice(1), options);
+        break;
       default:
         CLIUtils.error(`Unknown daemon command: ${subcommand}`);
-        CLIUtils.info('Available commands: start, stop, restart, status, reload');
+        CLIUtils.info('Available commands: start, stop, restart, status, reload, autostart');
         process.exit(1);
     }
   }
@@ -169,15 +175,16 @@ ${CLIUtils.colorize('Subcommands:', 'yellow')}
   stop                    Stop daemon
   status                  View daemon status
   reload                  Reload config
+  autostart               Enable/disable daemon auto-start on login
 
 ${CLIUtils.colorize('Start Options:', 'yellow')}
   --daemon-port <port>    IPC port (default: 9999)
-  --web-port <port>       Web interface port (auto-detected from 38881 if not specified)
+  --web-port <port>       Web interface port (auto-detected from 61125 if not specified)
   --pid-file <path>       PID file path
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
   mcpdog daemon start                    # Start daemon with auto-detected web port
-  mcpdog daemon start --web-port 38881    # Start daemon with specific web port
+  mcpdog daemon start --web-port 61125    # Start daemon with specific web port
   mcpdog daemon status                   # View status
   mcpdog daemon reload                   # Reload config
   mcpdog daemon restart                  # Restart daemon (stop then start)

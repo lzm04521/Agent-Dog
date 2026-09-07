@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # MCPDog 发布脚本（团队维护版）
-# 发布 @keysqiu/mcpdog 到 npm
+# 发布 @lzm04521/mcpdog 到 npm
 
 set -e
 
@@ -28,7 +28,7 @@ CURRENT_VERSION=$(node -p "require('./package.json').version")
 echo "📦 当前版本：${CURRENT_VERSION}"
 
 # 确认 npm 登录身份
-echo "🔐 当前 npm 身份：$(npm whoami)（应为 keysqiu）"
+echo "🔐 当前 npm 身份：$(npm whoami)（应拥有 @lzm04521 scope）"
 
 # 编译（prepublishOnly 也会触发，这里先行验证）
 echo "🔨 编译项目..."

@@ -6,6 +6,7 @@ import { CLIUtils } from '../cli-utils.js';
 import { ConfigManager } from '../../config/config-manager.js';
 import { MCPDogDaemon } from '../../daemon/mcpdog-daemon.js';
 import { DaemonClient } from '../../daemon/daemon-client.js';
+import { readDaemonInfo } from '../../daemon/daemon-info.js';
 import fs from 'fs/promises';
 import { readFileSync } from 'fs';
 import path from 'path';
@@ -91,8 +92,13 @@ export class DaemonCommands {
   async start(args: string[], options: any): Promise<void> {
     const port = parseInt(options['daemon-port']) || 9999;
     let webPort = parseInt(options['web-port']);
+    const explicitWebPort = !isNaN(webPort) && webPort > 0;
     const pidFile = options['pid-file'] || this.getDefaultPidFile();
-    
+
+    // 本实例独立于 cli-router 的 ConfigManager，必须自行加载配置：
+    // 否则 getWebPort 恒为 null、setWebPort 会以未加载的默认配置覆写用户配置
+    await this.configManager.loadConfig();
+
     try {
       // Ensure ~/.mcpdog directory exists
       await this.ensureMCPDogDir();
@@ -128,9 +134,15 @@ export class DaemonCommands {
         }
       }
 
-      // If web-port is not specified, default to starting web server with auto port detection
-      if (!webPort) {
-        webPort = await this.findAvailablePort(38881);
+      // Web 端口决策链：显式 --web-port（用后保存）> 配置保存值 > 默认 61125
+      if (explicitWebPort) {
+        // 显式指定：记住该设置，之后启动不再需要传参
+        await this.configManager.setWebPort(webPort);
+        CLIUtils.info(`Web port saved to config: ${webPort}`);
+      } else {
+        // 未显式指定：用保存值或默认值探测可用端口；探测漂移值不回写，避免污染保存值
+        const desired = this.configManager.getWebPort() ?? 61125;
+        webPort = await this.findAvailablePort(desired);
         CLIUtils.info(`Auto-detected available web port: ${webPort}`);
       }
 
@@ -348,7 +360,7 @@ ${CLIUtils.colorize('MCP Servers:', 'cyan')}`);
 
     console.log(`
 ${CLIUtils.colorize('Management:', 'cyan')}
-  🌐 Web interface: Check with 'mcpdog start --web-port 38881'
+  🌐 Web interface: Check with 'mcpdog start --web-port 61125'
   🔄 Reload config: mcpdog daemon reload
   🛑 Stop daemon: mcpdog stop
 `);
@@ -376,7 +388,7 @@ ${CLIUtils.colorize('Possible Solutions:', 'yellow')}
      mcpdog status --daemon-port 9998
 
 ${CLIUtils.colorize('Quick Start:', 'cyan')}
-  mcpdog start --config simple-config.json --web-port 38881
+  mcpdog start --config simple-config.json --web-port 61125
 `);
     process.exit(1);
   }
@@ -424,23 +436,7 @@ ${CLIUtils.colorize('Quick Start:', 'cyan')}
   // 新格式：{"pid":123,"version":"1.0.4"}（含版本号，用于升级检测）
   // 旧格式：纯数字 PID（无版本信息）
   private async getDaemonInfoFromFile(pidFile: string): Promise<{ pid: number; version: string | null } | null> {
-    try {
-      const content = (await fs.readFile(pidFile, 'utf-8')).trim();
-      if (!content) return null;
-
-      if (content.startsWith('{')) {
-        const info = JSON.parse(content);
-        if (typeof info.pid === 'number') {
-          return { pid: info.pid, version: info.version ?? null };
-        }
-        return null;
-      }
-
-      const pid = parseInt(content);
-      return isNaN(pid) ? null : { pid, version: null };
-    } catch (error) {
-      return null;
-    }
+    return readDaemonInfo(pidFile);
   }
 
   private async getPidFromFile(pidFile: string): Promise<number | null> {

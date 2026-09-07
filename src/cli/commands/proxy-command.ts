@@ -6,6 +6,7 @@ import { ConfigManager } from '../../config/config-manager.js';
 import { CLIUtils } from '../cli-utils.js';
 import { StdioMCPServer } from '../../index.js';
 import { StreamableHttpMCPServer } from '../../streamable-http-server.js';
+import { readDaemonInfo, isProcessAlive } from '../../daemon/daemon-info.js';
 import { promises as fs } from 'fs';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -128,42 +129,22 @@ export class ProxyCommand {
   }
 
   /**
-   * Check if daemon is running by checking PID file
+   * Check if daemon is running by checking PID file (shared dual-format parser)
    */
   private async isDaemonRunning(pidFile: string): Promise<boolean> {
-    try {
-      const pid = await this.getPidFromFile(pidFile);
-      if (!pid) return false;
-      
-      // Check if process is still running
+    const info = await readDaemonInfo(pidFile);
+    if (!info) return false;
+
+    if (!isProcessAlive(info.pid)) {
+      // Clean up stale PID file
       try {
-        process.kill(pid, 0); // Signal 0 doesn't kill, just checks if process exists
-        return true;
+        await fs.unlink(pidFile);
       } catch {
-        // Process doesn't exist, clean up stale PID file
-        try {
-          await fs.unlink(pidFile);
-        } catch {
-          // Ignore errors when cleaning up
-        }
-        return false;
+        // Ignore errors when cleaning up
       }
-    } catch {
       return false;
     }
-  }
-
-  /**
-   * Get PID from PID file
-   */
-  private async getPidFromFile(pidFile: string): Promise<number | null> {
-    try {
-      const pidStr = await fs.readFile(pidFile, 'utf-8');
-      const pid = parseInt(pidStr.trim());
-      return isNaN(pid) ? null : pid;
-    } catch {
-      return null;
-    }
+    return true;
   }
 
   /**

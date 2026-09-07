@@ -43,10 +43,12 @@ MCPDog 是一个 MCP（Model Context Protocol）服务器统一管理网关：�
 前置要求：Node.js ≥ 18。无需安装，npx 直接启动：
 
 ```bash
-npx @keysqiu/mcpdog@latest daemon start --web-port 38881
+npx @lzm04521/mcpdog@latest daemon start
 ```
 
-启动后浏览器打开 `http://localhost:38881` 即可看到 Web 管理界面，在界面里添加并管理子服务器。
+启动后浏览器打开 `http://localhost:61125` 即可看到 Web 管理界面，在界面里添加并管理子服务器。
+
+> Web 管理界面默认端口 **61125**。`daemon start --web-port <端口>` 显式指定的端口会保存到配置文件（`~/.mcpdog/mcpdog.config.json` 的 `web.port`），之后启动无需再传参；端口被占时自动探测相邻可用端口。
 
 ### 客户端接入（以 Claude Code 为例）
 
@@ -57,7 +59,7 @@ npx @keysqiu/mcpdog@latest daemon start --web-port 38881
   "mcpServers": {
     "mcpdog": {
       "command": "npx",
-      "args": ["@keysqiu/mcpdog@latest"]
+      "args": ["@lzm04521/mcpdog@latest"]
     }
   }
 }
@@ -68,17 +70,27 @@ npx @keysqiu/mcpdog@latest daemon start --web-port 38881
 ## 📖 常用命令
 
 ```bash
-npx @keysqiu/mcpdog@latest status              # 查看整体状态
-npx @keysqiu/mcpdog@latest daemon start --web-port 38881   # 启动 daemon + Web 界面
-npx @keysqiu/mcpdog@latest daemon stop         # 停止 daemon
-npx @keysqiu/mcpdog@latest daemon restart      # 重启 daemon（版本更新后直接重跑 start 也会自动升级重启）
-npx @keysqiu/mcpdog@latest config list          # 列出已配置的服务器
-npx @keysqiu/mcpdog@latest config add my-server "npx @some/mcp-server@latest" --auto-detect
+npx @lzm04521/mcpdog@latest status              # 查看整体状态
+npx @lzm04521/mcpdog@latest daemon start        # 启动 daemon + Web 界面（默认 61125）
+npx @lzm04521/mcpdog@latest daemon stop         # 停止 daemon
+npx @lzm04521/mcpdog@latest daemon restart      # 重启 daemon（版本更新后直接重跑 start 也会自动升级重启）
+npx @lzm04521/mcpdog@latest daemon autostart --enable   # 注册 daemon 开机自启（当前用户）
+npx @lzm04521/mcpdog@latest daemon autostart    # 查看开机自启状态
+npx @lzm04521/mcpdog@latest daemon autostart --disable  # 移除开机自启
+npx @lzm04521/mcpdog@latest config list          # 列出已配置的服务器
+npx @lzm04521/mcpdog@latest config add my-server "npx @some/mcp-server@latest" --auto-detect
                                                 # 添加子服务器（自动识别传输协议）
-npx @keysqiu/mcpdog@latest config remove old-server       # 移除子服务器
-npx @keysqiu/mcpdog@latest diagnose --health-check        # 健康检查
-npx @keysqiu/mcpdog@latest diagnose --fix                # 自动修复常见问题
+npx @lzm04521/mcpdog@latest config remove old-server       # 移除子服务器
+npx @lzm04521/mcpdog@latest diagnose --health-check        # 健康检查
+npx @lzm04521/mcpdog@latest diagnose --fix                # 自动修复常见问题
 ```
+
+### daemon 开机自启（可选）
+
+- Windows：注册表 HKCU Run 键 + `~/.mcpdog` 下隐藏 VBS 启动器，登录时无窗口启动 daemon。
+- macOS：LaunchAgent；Linux：systemd user unit（需 systemd --user 可用）。
+- 注册时记录的是当前 CLI 入口（node 与 cli-main.js）的绝对路径；npx 缓存清理/升级后可能失效，长期使用建议全局安装（`npm i -g @lzm04521/mcpdog`）后注册。
+- 开机自启后，MCP 客户端 npx 挂载照常工作：proxy 检测到 daemon 已运行会直接连接，无冷启动等待。
 
 ## 🖥️ Web 管理界面
 
@@ -123,13 +135,13 @@ Windows 平台下全局命令（npx/npm 等）是 `.cmd` 批处理脚本，本�
 
 **查看运行日志**
 ```bash
-npx @keysqiu/mcpdog@latest daemon logs
+npx @lzm04521/mcpdog@latest daemon logs
 ```
 
 **工具不可见 / 缺失**
 ```bash
-npx @keysqiu/mcpdog@latest detect --all
-npx @keysqiu/mcpdog@latest config show my-server
+npx @lzm04521/mcpdog@latest detect --all
+npx @lzm04521/mcpdog@latest config show my-server
 ```
 
 ## 🏢 关于本仓库

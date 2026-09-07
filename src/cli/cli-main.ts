@@ -54,7 +54,10 @@ async function main() {
         fix: { type: 'boolean' },
         // Optimize command options
         apply: { type: 'boolean' },
-        preview: { type: 'boolean' }
+        preview: { type: 'boolean' },
+        // Daemon autostart command options
+        enable: { type: 'boolean' },
+        disable: { type: 'boolean' }
       },
       allowPositionals: true,
       strict: false

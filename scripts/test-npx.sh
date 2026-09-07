@@ -1,20 +1,20 @@
 #!/bin/bash
 
 # MCPDog npx 安装验证脚本（团队维护版）
-# 验证 @keysqiu/mcpdog 发布后可通过 npx 正常安装和运行
+# 验证 @lzm04521/mcpdog 发布后可通过 npx 正常安装和运行
 
 set -e
 
-echo "🧪 开始验证 @keysqiu/mcpdog 的 npx 安装..."
+echo "🧪 开始验证 @lzm04521/mcpdog 的 npx 安装..."
 
 # 先停掉已存在的 daemon
 echo "🛑 停止已存在的 daemon..."
-npx @keysqiu/mcpdog stop 2>/dev/null || true
+npx @lzm04521/mcpdog stop 2>/dev/null || true
 sleep 2
 
 # 测试版本命令
 echo "📋 测试版本命令..."
-npx @keysqiu/mcpdog --version
+npx @lzm04521/mcpdog --version
 
 if [ $? -eq 0 ]; then
     echo "✅ 版本命令正常"
@@ -25,7 +25,7 @@ fi
 
 # 测试帮助命令
 echo "📋 测试帮助命令..."
-npx @keysqiu/mcpdog --help
+npx @lzm04521/mcpdog --help
 
 if [ $? -eq 0 ]; then
     echo "✅ 帮助命令正常"
@@ -36,7 +36,7 @@ fi
 
 # 测试 daemon 启动（后台）
 echo "📋 测试 daemon 启动..."
-npx @keysqiu/mcpdog daemon start --web-port 38881 &
+npx @lzm04521/mcpdog daemon start --web-port 38881 &
 DAEMON_PID=$!
 sleep 5
 
@@ -63,6 +63,6 @@ fi
 echo "📋 停止 daemon..."
 kill $DAEMON_PID 2>/dev/null || true
 sleep 2
-npx @keysqiu/mcpdog stop 2>/dev/null || true
+npx @lzm04521/mcpdog stop 2>/dev/null || true
 
 echo "🎉 npx 安装验证全部通过！"

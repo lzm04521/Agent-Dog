@@ -2,6 +2,14 @@
 
 本项目所有显著变更都会记录在此文件中。
 
+## [1.0.6] - 2026-09-06
+
+- **调整（对外约定）**：npm 包名由 `@keysqiu/mcpdog` 调整为 `@lzm04521/mcpdog`，安装与 npx 命令请使用新包名。本版本为 `@lzm04521/mcpdog` 首个发布，包含 `@keysqiu/mcpdog` 1.0.4 / 1.0.5 的全部变更（见下）；新版本发布后旧包将标记弃用并指向新包。
+- **修复**：Web 管理界面「客户端配置」推荐的 stdio 接入命令使用 npm 裸包名（registry 上为无关第三方项目，存在装错包风险），现改为 `@lzm04521/mcpdog@latest`。
+- **修复**：proxy 侧 PID 文件按纯数字解析，而 daemon 自 1.0.5 起写入 JSON 格式（含版本号），导致 daemon 存活检测恒失败——daemon 已运行时每次客户端冷启动仍重复拉起一次 `daemon start` 并固定多等待约 2 秒。PID 读取收敛为共享双格式解析模块（`src/daemon/daemon-info.ts`），proxy 与 daemon 命令统一复用。
+- **新增**：`mcpdog daemon autostart --enable/--disable`（无参数显示状态），daemon 开机自启管理。Windows 使用 HKCU Run 注册表键 + `~/.mcpdog` 隐藏 VBS 启动器（登录无窗口），macOS 使用 LaunchAgent，Linux 使用 systemd user unit；注册记录 node 与 CLI 入口的稳定绝对路径（符号链接已解析），入口位于 npx 缓存时给出警告。
+- **新增**：Web 管理界面默认端口 38881 → 61125。`daemon start --web-port` 显式指定的端口持久化到配置文件（`web.port`），后续启动免传参；未指定时依次取保存值、默认 61125，端口被占自动探测相邻可用端口（探测漂移值不回写配置）。
+
 ## [1.0.5] - 2026-09-04
 
 - **新增**：daemon 版本更新自动接管。PID 文件现在记录 daemon 版本号，`daemon start` 检测到已有实例运行且版本不同（或为无版本信息的旧格式 PID 文件）时，自动停止旧实例并以新版本启动——版本更新后重跑一次启动命令即可完成升级，不再被 "Daemon is already running" 挡住导致老版本继续伺服。版本相同时仍拒绝重复启动。

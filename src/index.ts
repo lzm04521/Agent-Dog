@@ -176,7 +176,7 @@ Transport Types:
   stdio           - Standard input/output (default, for MCP clients like Claude Desktop)
   streamable-http - HTTP-based transport with optional Server-Sent Events
 
-For more information, visit: https://github.com/SIE-Operations-and-Maintenance-Team/mcpdog
+For more information, visit: https://github.com/lzm04521/Agent-Dog
       `);
       process.exit(0);
     }

@@ -3,7 +3,7 @@ import { Github } from 'lucide-react';
 import { apiClient } from '../utils/api';
 import { ThemeToggle } from './ThemeToggle';
 
-const GITHUB_URL = 'https://github.com/SIE-Operations-and-Maintenance-Team/mcpdog';
+const GITHUB_URL = 'https://github.com/lzm04521/Agent-Dog';
 
 // 顶部栏：完全照搬 ssh-mcp-server 管理台——固定蓝色渐变背景 + 白色元素，不随主题变化（主题切换只影响内容区）
 export const Header: React.FC = () => {
