@@ -12,6 +12,7 @@ function createFakeDaemon() {
     mcpServer: { initialized: true },
     servers: []
   });
+  daemon.recordClientActivity = () => {};
   daemon.mcpServer = {
     handleRequest: async (request: any, clientId?: string) => ({
       jsonrpc: '2.0',

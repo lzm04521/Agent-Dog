@@ -4,7 +4,6 @@
  */
 
 import { EventEmitter } from 'events';
-import { createServer, Server as NetServer } from 'net';
 import { Server as HttpServer } from 'http';
 import { MCPDogServer } from '../core/mcpdog-server.js';
 import { ConfigManager } from '../config/config-manager.js';
@@ -17,7 +16,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export interface DaemonConfig {
   configPath: string;
-  ipcPort?: number;
   dashboardPort?: number;
   httpPort?: number;
   enableHttp?: boolean;
@@ -27,20 +25,13 @@ export interface DaemonConfig {
   webPort?: number;
 }
 
-export interface DaemonClient {
-  id: string;
-  type: 'stdio' | 'web' | 'cli';
-  socket?: any;
-  lastSeen: Date;
-}
-
 export class MCPDogDaemon extends EventEmitter {
   private mcpServer: MCPDogServer;
   private configManager: ConfigManager;
-  private ipcServer: NetServer;
   private webServer?: HttpServer;
   private httpMCPServer?: StreamableHttpMCPServer;
-  private clients = new Map<string, DaemonClient>();
+  // HTTP 模式下的客户端活跃记录（替代原 IPC socket 注册表）
+  private clientInfos = new Map<string, { type: string; lastSeen: Date }>();
   private config: DaemonConfig;
   private isRunning = false;
 
@@ -49,10 +40,8 @@ export class MCPDogDaemon extends EventEmitter {
     this.config = config;
     this.configManager = new ConfigManager(config.configPath);
     this.mcpServer = new MCPDogServer(this.configManager);
-    this.ipcServer = createServer();
-    
+
     this.setupMCPServerEvents();
-    this.setupIPCServer();
   }
 
   private setupMCPServerEvents() {
@@ -124,158 +113,27 @@ export class MCPDogDaemon extends EventEmitter {
     });
   }
 
-  private setupIPCServer() {
-    this.ipcServer.on('connection', (socket) => {
-      const clientId = this.generateClientId();
-      console.log(`[DAEMON] Client connected: ${clientId}`);
-
-      // Register client
-      const client: DaemonClient = {
-        id: clientId,
-        type: 'cli', // Default type, will be updated based on handshake message
-        socket,
-        lastSeen: new Date()
-      };
-      this.clients.set(clientId, client);
-
-      // Handle client messages
-      // Per-connection TCP fragmentation buffer (same mechanism as DaemonClient)
-      let recvBuffer = '';
-      socket.on('data', (data) => {
-        recvBuffer += data.toString();
-        let newlineIndex: number;
-        while ((newlineIndex = recvBuffer.indexOf('\n')) >= 0) {
-          const line = recvBuffer.slice(0, newlineIndex).trim();
-          recvBuffer = recvBuffer.slice(newlineIndex + 1);
-          if (!line) continue;
-
-          try {
-            const message = JSON.parse(line);
-            this.handleClientMessage(clientId, message);
-          } catch (error) {
-            console.error(`[DAEMON] Invalid message from ${clientId}:`, error);
-          }
-        }
-      });
-
-      socket.on('close', () => {
-        console.log(`[DAEMON] Client disconnected: ${clientId}`);
-        this.clients.delete(clientId);
-      });
-
-      socket.on('error', (error) => {
-        console.error(`[DAEMON] Client error ${clientId}:`, error);
-        this.clients.delete(clientId);
-      });
-
-      // Send welcome message
-      this.sendToClient(clientId, {
-        type: 'welcome',
-        clientId,
-        serverStatus: this.mcpServer.getStatus()
-      });
-    });
-  }
-
-  private async handleClientMessage(clientId: string, message: any) {
-    const client = this.clients.get(clientId);
-    if (!client) return;
-
-    client.lastSeen = new Date();
-
-    switch (message.type) {
-      case 'handshake':
-        // Client type handshake
-        client.type = message.clientType || 'cli';
-        this.sendToClient(clientId, {
-          type: 'handshake-ack',
-          serverStatus: this.mcpServer.getStatus()
-        });
-        break;
-
-      case 'mcp-request':
-        // MCP protocol request forwarding, pass client ID to support multi-client deduplication
-        try {
-          const response = await this.mcpServer.handleRequest(message.request, clientId);
-          this.sendToClient(clientId, {
-            type: 'mcp-response',
-            requestId: message.requestId,
-            response
-          });
-        } catch (error) {
-          this.sendToClient(clientId, {
-            type: 'mcp-error',
-            requestId: message.requestId,
-            error: (error as Error).message
-          });
-        }
-        break;
-
-      case 'get-status':
-        this.sendToClient(clientId, {
-          type: 'status',
-          status: this.getFullStatus()
-        });
-        break;
-
-      case 'reload-config':
-        await this.reloadConfig();
-        break;
-
-      case 'get-tools':
-        const tools = await this.mcpServer.getToolRouter().getAllTools();
-        this.sendToClient(clientId, {
-          type: 'tools',
-          tools
-        });
-        break;
-
-      case 'config-request':
-        await this.handleConfigRequest(message);
-        break;
-
-      default:
-        console.warn(`[DAEMON] Unknown message type from ${clientId}:`, message.type);
-    }
-  }
-
-  private sendToClient(clientId: string, message: any) {
-    const client = this.clients.get(clientId);
-    if (client?.socket) {
-      try {
-        client.socket.write(JSON.stringify(message) + '\n');
-      } catch (error) {
-        console.error(`[DAEMON] Failed to send to client ${clientId}:`, error);
-        this.clients.delete(clientId);
-      }
-    }
-  }
-
   private broadcastToClients(type: string, data: any) {
-    const message = { type, data, timestamp: new Date().toISOString() };
-    this.clients.forEach((client, clientId) => {
-      this.sendToClient(clientId, message);
-    });
-    
-    // Also emit local event for daemon-web-server etc. to listen to
+    // IPC socket 已删除；本地事件保留，供 daemon-web-server 的 socket.io 推送消费
     this.emit(type, data);
   }
 
-  private generateClientId(): string {
-    return `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // HTTP 模式下由 /api/mcp 路由调用，替代原 socket 注册表的 lastSeen 记录
+  recordClientActivity(clientId: string, type: string): void {
+    this.clientInfos.set(clientId, { type, lastSeen: new Date() });
   }
 
   private getFullStatus() {
     const toolRouter = this.mcpServer.getToolRouter();
     const adapters = toolRouter.getAllAdapters();
-    
+
     return {
       daemon: {
         isRunning: this.isRunning,
-        clients: Array.from(this.clients.values()).map(c => ({
-          id: c.id,
-          type: c.type,
-          lastSeen: c.lastSeen
+        clients: Array.from(this.clientInfos.entries()).map(([id, info]) => ({
+          id,
+          type: info.type,
+          lastSeen: info.lastSeen
         })),
         uptime: process.uptime()
       },
@@ -363,15 +221,6 @@ export class MCPDogDaemon extends EventEmitter {
       
       // In daemon mode, manually initialize MCP server
       await this.initializeMCPServer();
-      
-      // Start IPC server
-      const ipcPort = this.config.ipcPort || 9999;
-      await new Promise<void>((resolve) => {
-        this.ipcServer.listen(ipcPort, 'localhost', () => {
-          console.log(`[DAEMON] IPC server listening on port ${ipcPort}`);
-          resolve();
-        });
-      });
 
       // Start HTTP MCP server if enabled
       if (this.config.enableHttp && this.config.httpPort) {
@@ -413,30 +262,17 @@ export class MCPDogDaemon extends EventEmitter {
       console.log('[DAEMON] Stopping MCPDog daemon...');
       
       this.isRunning = false;
-      
-      // Close all client connections
-      this.clients.forEach((client, clientId) => {
-        if (client.socket) {
-          client.socket.end();
-        }
-      });
-      this.clients.clear();
 
       // Stop HTTP MCP server if running
       if (this.httpMCPServer) {
         try {
-          // StreamableHttpMCPServer doesn't have a direct stop method, 
+          // StreamableHttpMCPServer doesn't have a direct stop method,
           // but it should clean up on process exit
           console.log('[DAEMON] HTTP MCP server stopped');
         } catch (error) {
           console.error('[DAEMON] Error stopping HTTP MCP server:', error);
         }
       }
-
-      // Stop IPC server
-      await new Promise<void>((resolve) => {
-        this.ipcServer.close(() => resolve());
-      });
 
       // Stop MCP server
       await this.mcpServer.stop();

@@ -152,7 +152,6 @@ ${CLIUtils.colorize('[INFO]', 'cyan')} Daemon is running in the background
     // 创建 daemon 配置
     const daemonConfig: DaemonConfig = {
       configPath: this.configManager.getConfigPath(),
-      ipcPort: finalConfig.daemonPort,
       dashboardPort: finalConfig.enableDashboard ? finalConfig.dashboardPort : undefined,
       httpPort: finalConfig.enableHttp ? finalConfig.httpPort : undefined,
       enableHttp: finalConfig.enableHttp,

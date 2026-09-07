@@ -148,7 +148,6 @@ export class DaemonCommands {
 
       const daemon = new MCPDogDaemon({
         configPath: this.configManager.getConfigPath(),
-        ipcPort: port,
         webPort,
         pidFile
       });

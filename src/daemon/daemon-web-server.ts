@@ -399,10 +399,7 @@ export class DaemonWebServer {
       }
       const clientId = (req.headers['x-mcpdog-client'] as string) || 'http-anonymous';
       const daemon: any = this.daemon;
-      // 客户端活跃记录（Task 5 落地 recordClientActivity 前为可选调用）
-      if (typeof daemon.recordClientActivity === 'function') {
-        daemon.recordClientActivity(clientId, 'stdio');
-      }
+      daemon.recordClientActivity(clientId, 'stdio');
       const response = await daemon.mcpServer.handleRequest(request, clientId);
       res.json(response);
     } catch (error) {
@@ -535,11 +532,11 @@ export class DaemonWebServer {
 
   private async handleGetClients(req: express.Request, res: express.Response) {
     try {
-      const clients = this.daemon['clients'];
-      const clientList = Array.from(clients.values()).map(c => ({
-        id: c.id,
-        type: c.type,
-        lastSeen: c.lastSeen
+      const clientInfos = this.daemon['clientInfos'] as Map<string, { type: string; lastSeen: Date }>;
+      const clientList = Array.from(clientInfos.entries()).map(([id, info]) => ({
+        id,
+        type: info.type,
+        lastSeen: info.lastSeen
       }));
       res.json(clientList);
     } catch (error) {
