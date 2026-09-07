@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ServerManager } from './components/ServerManager';
+import { ProviderManager } from './components/ai/ProviderManager';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useAppStore } from './store/useAppStore';
 import { useConfigStore } from './store/configStore';
@@ -10,6 +11,7 @@ import { Header } from './components/Header';
 function App() {
   const { connected } = useAppStore();
   const { setAuthState } = useConfigStore();
+  const [view, setView] = useState<'mcp' | 'ai'>('mcp');
   const [authState, setLocalAuthState] = useState<{
     loading: boolean;
     authenticated: boolean;
@@ -98,6 +100,22 @@ function App() {
         {/* Header */}
         <Header />
 
+        {/* 视图切换：MCP 服务器 / AI 供应商 */}
+        <div className="px-4 sm:px-6 pt-4">
+          <div role="tablist" className="tabs tabs-boxed tabs-sm w-fit">
+            <button
+              role="tab"
+              className={`tab ${view === 'mcp' ? 'tab-active' : ''}`}
+              onClick={() => setView('mcp')}
+            >MCP 服务器</button>
+            <button
+              role="tab"
+              className={`tab ${view === 'ai' ? 'tab-active' : ''}`}
+              onClick={() => setView('ai')}
+            >AI 供应商</button>
+          </div>
+        </div>
+
         {/* Main Content */}
         <main className="flex-1 overflow-hidden w-full px-4 sm:px-6 py-8">
           {/* Global Status Alert */}
@@ -121,12 +139,18 @@ function App() {
             </div>
           )}
 
-          {/* Server Management Interface */}
+          {/* 主区：MCP 服务器管理 / AI 供应商维护 */}
           <div className="h-full">
-            <ServerManager 
-              refreshServerTools={refreshServerTools} 
-              onLogout={authState.required ? handleLogout : undefined}
-            />
+            {view === 'mcp' ? (
+              <ServerManager
+                refreshServerTools={refreshServerTools}
+                onLogout={authState.required ? handleLogout : undefined}
+              />
+            ) : (
+              <div className="h-full overflow-y-auto">
+                <ProviderManager />
+              </div>
+            )}
           </div>
         </main>
       </div>
