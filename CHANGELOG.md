@@ -4,6 +4,9 @@
 
 ## [未发布]
 
+- **新增（AI API 网关一期）**：daemon 内新增 AI API 网关子系统，对外提供 Anthropic Messages 兼容端点（`POST /v1/messages`、`POST /v1/messages/count_tokens`，默认 `127.0.0.1:62125`，`daemon start --gateway-port` 持久化端口并启用），Claude Code 设 `ANTHROPIC_BASE_URL` 指向网关即可统一接入任意供应商。模型按 `slug:modelId` 前缀寻址（第一个 `:` 分割，如 `deepseek:deepseek-chat`），未命中 slug 返回 400 并列出可用列表。
+- **新增**：三种上游方言通道——anthropic 直通（字节级转发，`cache_control`/`thinking`/计费字段零损耗，count_tokens 直通真值）、openai 兼容与 gemini（经统一中间表示 IR 双向转换：工具调用、图片、system、tool_choice、采样参数全映射；openai 历史 tool 消息缺失自动补空容错，gemini JSON Schema 净化、functionResponse 包装）。流式 SSE 双向转换（延迟提交、30s ping 保活、5 分钟无字节 watchdog、客户端断连 abort 链、上游错误状态码透传 + Anthropic 格式错误体 + message 原文保留）。
+- **新增**：Provider 管理面——daemon Web 端口 `/api/ai-gateway/*` 与 `/api/ai-providers`（CRUD / 连通测试 / 模型拉取，apiKey 脱敏返回、对外 key `ad-sk-` 前缀首次启用自动生成）；Web 界面新增"AI 供应商"视图（供应商卡片管理、slug 实时校验表单、模型管理面板、网关设置 + Claude Code 接入环境变量一键复制）。配置新增可选段 `aiGateway` / `providers`（老配置无此段 = 网关关闭）。已知限制：gemini 同名函数多调用的 tool_result 配对存在歧义；openai 兼容端点差异不做静默兼容，错误原文透传便于诊断。
 - **调整（对外约定）**：daemon IPC 与 Web 管理界面合并为单一 TCP 端口。原 `--daemon-port`（默认 9999）的独立 TCP IPC 通道删除，CLI `status`/`reload` 与 `proxy` 挂载全部改走 Web 端口 HTTP（`POST /api/mcp`）；传入 `--daemon-port` 将直接报错并提示移除该参数。
 - **调整（安全）**：Web 界面默认监听收紧为 `localhost`（原为 `0.0.0.0`）。需要远程访问时须显式配置 `web.host: "0.0.0.0"` 且强制设置 `MCPDOG_AUTH_TOKEN`，缺一拒绝启动。
 - **优化**：daemon 客户端由手写 TCP 行协议改为 HTTP（Node 内置 fetch），大响应（如聚合 `tools/list`）由 HTTP 分帧承载，消除跨 TCP 分片解析类缺陷的结构性温床；daemon 重启后 proxy 请求自愈改为"探活 + 单次重试"。

@@ -98,6 +98,29 @@ npx agentdog@latest diagnose --fix                # 自动修复常见问题
 - 工具管理：按服务器查看全部工具，逐个开关（白名单/黑名单两种模式）
 - 服务器日志：实时查看子服务器的 stdout/stderr
 - 客户端配置：一键生成 Claude Desktop / Cursor 的接入配置
+- AI 供应商：管理 AI API 网关的供应商与接入配置（见下节）
+
+## 🤖 AI API 网关
+
+daemon 内置 AI API 网关：对外提供 Anthropic Messages 兼容端点，Claude Code 统一接入任意供应商（openai 兼容 / anthropic / gemini）。
+
+```bash
+agentdog daemon start --gateway-port 62125   # 启用并持久化网关端口
+```
+
+在 Web 界面"AI 供应商"视图配置供应商（slug、方言、Base URL、API Key），然后：
+
+```bash
+export ANTHROPIC_BASE_URL=http://127.0.0.1:62125
+export ANTHROPIC_API_KEY=<网关 apiKey，界面可复制>
+export ANTHROPIC_MODEL=deepseek:deepseek-chat   # 格式：供应商slug:模型Id
+export ANTHROPIC_SMALL_FAST_MODEL=deepseek:deepseek-chat
+```
+
+- **寻址**：模型名按第一个 `:` 分割，前段命中供应商 slug，后段为上游真实模型名原样透传；未命中返回 400 并列出可用 slug。
+- **anthropic 上游直通**：请求字节级转发，`cache_control`、`thinking`、prompt cache 计费字段零损耗；`count_tokens` 直通真值（openai/gemini 上游本地估算）。
+- **openai / gemini 转换**：工具调用、图片、system、tool_choice、采样参数经统一 IR 双向映射；流式 SSE 双向转换，上游错误状态码透传（message 保留原文，便于诊断中转站差异）。
+- **已知限制**：gemini 同名函数多调用的 `tool_result` 配对存在歧义；openai 兼容端点（DeepSeek / OpenRouter / 中转站）各有出入，不做静默兼容。
 
 ## 🧩 子服务器配置示例
 
