@@ -68,4 +68,37 @@ describe('DaemonWebServer 监听', () => {
     const status = await res.json();
     expect(status.daemon.isRunning).toBe(true);
   });
+
+  it('POST /api/mcp 转发 MCP 请求并把 X-MCPDog-Client 作为 clientId', async () => {
+    const res = await fetch(`${baseUrl}/api/mcp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-MCPDog-Client': 'client_test_1' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 7, method: 'tools/list', params: {} })
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.id).toBe(7);
+    expect(body.result.method).toBe('tools/list');
+    expect(body.result.clientId).toBe('client_test_1');
+  });
+
+  it('POST /api/mcp 缺省 clientId 时用 http-anonymous', async () => {
+    const res = await fetch(`${baseUrl}/api/mcp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 8, method: 'ping' })
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.result.clientId).toBe('http-anonymous');
+  });
+
+  it('POST /api/mcp 非 JSON-RPC 结构返回 400', async () => {
+    const res = await fetch(`${baseUrl}/api/mcp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hello: 'world' })
+    });
+    expect(res.status).toBe(400);
+  });
 });

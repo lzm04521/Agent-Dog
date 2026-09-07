@@ -136,6 +136,9 @@ export class DaemonWebServer {
     // System status API
     router.get('/status', this.handleGetStatus.bind(this));
 
+    // MCP JSON-RPC forwarding (replaces the former IPC mcp-request channel)
+    router.post('/mcp', this.handleMCPRequest.bind(this));
+
     // System info API (version & config path for header display)
     router.get('/system/info', this.handleGetSystemInfo.bind(this));
     
@@ -383,6 +386,27 @@ export class DaemonWebServer {
         error: '获取状态失败',
         message: (error as Error).message
       });
+    }
+  }
+
+  // 任意 MCP JSON-RPC 转发（替代原 IPC mcp-request，见设计文档 §3）
+  private async handleMCPRequest(req: express.Request, res: express.Response) {
+    try {
+      const request = req.body;
+      if (!request || typeof request !== 'object' ||
+          request.jsonrpc !== '2.0' || typeof request.method !== 'string') {
+        return res.status(400).json({ error: 'Invalid MCP request: expect a JSON-RPC 2.0 object with method' });
+      }
+      const clientId = (req.headers['x-mcpdog-client'] as string) || 'http-anonymous';
+      const daemon: any = this.daemon;
+      // 客户端活跃记录（Task 5 落地 recordClientActivity 前为可选调用）
+      if (typeof daemon.recordClientActivity === 'function') {
+        daemon.recordClientActivity(clientId, 'stdio');
+      }
+      const response = await daemon.mcpServer.handleRequest(request, clientId);
+      res.json(response);
+    } catch (error) {
+      res.status(500).json({ error: 'MCP request failed', message: (error as Error).message });
     }
   }
 
