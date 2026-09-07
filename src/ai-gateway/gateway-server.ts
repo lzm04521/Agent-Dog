@@ -10,7 +10,7 @@ import { resolveModel, ModelRouteError } from './model-router.js';
 import { passthroughMessages } from './passthrough.js';
 import { handleCountTokens } from './count-tokens.js';
 import { handleIRChannel } from './ir-channel.js';
-import { openaiCodec } from './dialects.js';
+import { openaiCodec, geminiCodec } from './dialects.js';
 
 const DEFAULT_PORT = 62125;
 const DEFAULT_HOST = '127.0.0.1';
@@ -70,8 +70,7 @@ export class AiGatewayServer {
           void handleIRChannel(req, res, provider, upstreamModel, openaiCodec);
           break;
         case 'gemini':
-          // Task 10 接入
-          anthropicError(res, 501, 'api_error', 'dialect "gemini" not yet supported');
+          void handleIRChannel(req, res, provider, upstreamModel, geminiCodec);
           break;
       }
     } catch (error) {
