@@ -46,46 +46,43 @@ export class ProxyCommand {
   }
 
   private async startStdioMode(options: Record<string, any>): Promise<void> {
-    const daemonPort = parseInt(options['daemon-port']) || 9999;
+    if (options['daemon-port']) {
+      process.stderr.write(
+        'MCPDog: --daemon-port has been removed. The daemon now shares the Web port; ' +
+        'remove the --daemon-port argument from your MCP client config ' +
+        '(daemon address: http://localhost:<web.port>, default 61125).\n'
+      );
+      process.exit(1);
+    }
+
     const pidFile = options['pid-file'] || this.getDefaultPidFile();
-    
+
     try {
+      // Web 端口决策链与 daemon 一致：配置 web.port > 默认 61125
+      await this.configManager.loadConfig();
+      const webPort = this.configManager.getWebPort() ?? 61125;
+
       // Check if daemon is running, auto-start if not
       const isDaemonRunning = await this.isDaemonRunning(pidFile);
-      
+
       if (!isDaemonRunning) {
-        // Auto-start daemon with default parameters
-        // In MCP mode, suppress all output to avoid JSON parsing errors
-        await this.autoStartDaemonSilent(daemonPort, pidFile);
-        
-        // Wait a moment for daemon to fully start
+        // Auto-start daemon; web port 由 daemon 端口决策链自行决定，不传参
+        await this.autoStartDaemonSilent(pidFile);
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
-      
+
       // In MCP stdio mode, don't output any debug logs to stderr
-      // All non-JSON output will be mistaken as responses by MCP clients
-      
       const { StdioProxy } = await import('../../daemon/stdio-proxy.js');
-      const proxy = new StdioProxy(daemonPort);
-      
-      // Graceful shutdown handling
-      process.on('SIGINT', () => {
-        process.exit(0);
-      });
-      
-      process.on('SIGTERM', () => {
-        process.exit(0);
-      });
-      
+      const proxy = new StdioProxy(webPort);
+
+      process.on('SIGINT', () => process.exit(0));
+      process.on('SIGTERM', () => process.exit(0));
+
       await proxy.start();
-      
-      // Prevent command exit from terminating process
       await new Promise(() => {}); // Wait forever
 
     } catch (error) {
-      // Only output error on connection failure, then exit immediately
-      // Use process.stderr.write instead of CLIUtils to avoid color codes
-      process.stderr.write(`MCPDog: Failed to connect to daemon on port ${daemonPort}\n`);
+      process.stderr.write(`MCPDog: Failed to connect to daemon (web port from config)\n`);
       process.stderr.write(`Please ensure daemon is running: agentdog daemon start\n`);
       process.exit(1);
     }
@@ -148,62 +145,23 @@ export class ProxyCommand {
   }
 
   /**
-   * Auto-start daemon in detached mode
-   */
-  private async autoStartDaemon(daemonPort: number, pidFile: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const mcpdogPath = process.argv[0]; // node executable path
-      const scriptPath = process.argv[1]; // path to cli-main.js
-      const configPath = this.configManager.getConfigPath();
-      
-      const daemon = spawn(mcpdogPath, [
-        scriptPath, 'daemon', 'start',
-        '--config', configPath,
-        '--daemon-port', daemonPort.toString(),
-        '--pid-file', pidFile
-      ], { 
-        detached: true, 
-        stdio: 'ignore' 
-      });
-      
-      // Detach the daemon process from parent
-      daemon.unref();
-      
-      // Don't wait for the daemon to start completely, just for it to spawn
-      daemon.on('spawn', () => {
-        resolve();
-      });
-      
-      daemon.on('error', (error) => {
-        reject(error);
-      });
-      
-      // If no spawn event in 5 seconds, consider it failed
-      setTimeout(() => {
-        reject(new Error('Daemon failed to start within 5 seconds'));
-      }, 5000);
-    });
-  }
-
-  /**
    * Auto-start daemon in silent mode (no output to avoid MCP client errors)
    */
-  private async autoStartDaemonSilent(daemonPort: number, pidFile: string): Promise<void> {
+  private async autoStartDaemonSilent(pidFile: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const mcpdogPath = process.argv[0]; // node executable path
       const scriptPath = process.argv[1]; // path to cli-main.js
       const configPath = this.configManager.getConfigPath();
-      
+
       // Use --no-color and --json flags to suppress all output
       const daemon = spawn(mcpdogPath, [
         scriptPath, 'daemon', 'start',
         '--config', configPath,
-        '--daemon-port', daemonPort.toString(),
         '--pid-file', pidFile,
         '--no-color',
         '--json'
-      ], { 
-        detached: true, 
+      ], {
+        detached: true,
         stdio: 'ignore' // Completely ignore all stdio to avoid any output
       });
       
@@ -236,7 +194,6 @@ ${CLIUtils.colorize('Usage:', 'yellow')}
 ${CLIUtils.colorize('Options:', 'yellow')}
   --transport <type>    Transport protocol: stdio (default) or streamable-http
   -p, --port <port>     Port for HTTP transport (default: 4000)
-  --daemon-port <port>  Connect to daemon on specific port (default: 9999, stdio mode only)
   --help               Show this help message
 
 ${CLIUtils.colorize('Description:', 'yellow')}
@@ -251,7 +208,6 @@ ${CLIUtils.colorize('Examples:', 'yellow')}
   agentdog proxy                                    # Start with stdio transport
   agentdog proxy --transport streamable-http        # Start HTTP server on port 4000
   agentdog proxy --transport streamable-http --port 8080  # Start HTTP server on port 8080
-  agentdog proxy --daemon-port 9999                # Use specific daemon port (stdio only)
 
 ${CLIUtils.colorize('MCP Client Configuration:', 'yellow')}
   
