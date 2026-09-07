@@ -19,7 +19,7 @@ describe('parseSSEStream', () => {
       },
     });
     await parseSSEStream(stream, line => lines.push(line));
-    expect(lines).toEqual(['event: message', 'data: {"a":1}', 'data: {"b":2}']);
+    expect(lines).toEqual(['event: message', 'data: {"a":1}', '', 'data: {"b":2}', '']);
   });
 
   it('空行与注释行原样回调（由调用方按需忽略）', async () => {
