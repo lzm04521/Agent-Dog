@@ -63,6 +63,29 @@ export interface MCPDogConfig {
     level: 'error' | 'warn' | 'info' | 'debug';
     file?: string;
   };
+  // AI API 网关（可选段，老配置无此段 = 网关关闭）
+  aiGateway?: AIGatewayConfig;
+  providers?: AIProviderConfig[];
+}
+
+// AI 供应商配置（上游 LLM 端点）
+export interface AIProviderConfig {
+  id: string;                                  // GUID，内部主键
+  slug: string;                                // 寻址名，/^[a-z0-9][a-z0-9-]*$/，全库唯一
+  name?: string;                               // 显示名（中文别名），界面展示用
+  dialect: 'openai' | 'anthropic' | 'gemini';  // 上游方言
+  baseUrl: string;                             // 如 https://api.deepseek.com
+  apiKey: string;                              // 上游密钥
+  enabled: boolean;
+  models?: string[];                           // 手工声明的模型（拉取失败时兜底）
+  headers?: Record<string, string>;            // 附加上游请求头
+}
+
+export interface AIGatewayConfig {
+  enabled: boolean;      // 默认 false
+  port: number;          // 默认 62125
+  host: string;          // 默认 127.0.0.1
+  apiKey: string;        // 对外 key，"ad-sk-<uuid>"
 }
 
 export interface MCPTool {

@@ -170,4 +170,75 @@ describe('ConfigManager', () => {
       expect(saved.web.port).toBe(61125);
     });
   });
+
+  describe('AI gateway config', () => {
+    const baseProvider = {
+      id: 'g1',
+      slug: 'deepseek',
+      dialect: 'openai' as const,
+      baseUrl: 'https://api.deepseek.com',
+      apiKey: 'k',
+      enabled: true,
+    };
+
+    it('老配置无 aiGateway 段时 getAIGatewayConfig 返回 undefined、providers 为空', async () => {
+      vi.mocked(fsPromises.readFile).mockResolvedValue(JSON.stringify({ version: '2.0.0', servers: {} }));
+      await configManager.loadConfig();
+      expect(configManager.getAIGatewayConfig()).toBeUndefined();
+      expect(configManager.getAIProviders()).toEqual([]);
+    });
+
+    it('addAIProvider 校验 slug 唯一', () => {
+      expect(configManager.addAIProvider({ ...baseProvider })).toBe(true);
+      expect(configManager.addAIProvider({ ...baseProvider, id: 'g2' })).toBe(false);
+      expect(configManager.getAIProviderBySlug('deepseek')?.id).toBe('g1');
+    });
+
+    it('addAIProvider 校验 slug 格式', () => {
+      expect(configManager.addAIProvider({ ...baseProvider, slug: 'Bad_Slug' })).toBe(false);
+      expect(configManager.addAIProvider({ ...baseProvider, slug: '-bad' })).toBe(false);
+      expect(configManager.addAIProvider({ ...baseProvider, slug: 'a-b2' })).toBe(true);
+    });
+
+    it('addAIProvider 落盘并发事件', async () => {
+      const events: string[] = [];
+      configManager.on('ai-providers-changed', () => events.push('changed'));
+      configManager.addAIProvider({ ...baseProvider });
+      await new Promise(r => setImmediate(r)); // 落盘为异步，flush 后断言
+      const saveCall = vi.mocked(fsPromises.writeFile).mock.calls.find(c => c[0] === '/fake/path/mcpdog.config.json');
+      expect(saveCall).toBeDefined();
+      expect(JSON.parse(saveCall![1] as string).providers).toHaveLength(1);
+      expect(events).toHaveLength(1);
+    });
+
+    it('updateAIProvider 按 id 更新、apiKey 空串不覆盖', () => {
+      configManager.addAIProvider({ ...baseProvider });
+      expect(configManager.updateAIProvider('g1', { name: '深度求索', apiKey: '' })).toBe(true);
+      const p = configManager.getAIProviderBySlug('deepseek');
+      expect(p?.name).toBe('深度求索');
+      expect(p?.apiKey).toBe('k');
+      expect(configManager.updateAIProvider('nope', { name: 'x' })).toBe(false);
+    });
+
+    it('updateAIProvider 改 slug 校验唯一', () => {
+      configManager.addAIProvider({ ...baseProvider });
+      configManager.addAIProvider({ ...baseProvider, id: 'g2', slug: 'other' });
+      expect(configManager.updateAIProvider('g2', { slug: 'deepseek' })).toBe(false);
+      expect(configManager.updateAIProvider('g2', { slug: 'renamed' })).toBe(true);
+    });
+
+    it('removeAIProvider 删除并落盘', () => {
+      configManager.addAIProvider({ ...baseProvider });
+      expect(configManager.removeAIProvider('g1')).toBe(true);
+      expect(configManager.getAIProviders()).toHaveLength(0);
+      expect(configManager.removeAIProvider('g1')).toBe(false);
+    });
+
+    it('setAIGateway 保存配置', async () => {
+      await configManager.setAIGateway({ enabled: true, port: 62125, host: '127.0.0.1', apiKey: 'ad-sk-1' });
+      expect(configManager.getAIGatewayConfig()).toEqual({ enabled: true, port: 62125, host: '127.0.0.1', apiKey: 'ad-sk-1' });
+      const saveCall = vi.mocked(fsPromises.writeFile).mock.calls.find(c => c[0] === '/fake/path/mcpdog.config.json');
+      expect(JSON.parse(saveCall![1] as string).aiGateway).toBeDefined();
+    });
+  });
 });

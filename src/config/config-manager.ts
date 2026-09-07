@@ -3,7 +3,7 @@ import * as fsSync from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 import { EventEmitter } from 'events';
-import { MCPDogConfig, MCPServerConfig } from '../types/index.js';
+import { MCPDogConfig, MCPServerConfig, AIProviderConfig, AIGatewayConfig } from '../types/index.js';
 import { AdapterFactory } from '../adapters/adapter-factory.js';
 import { AutoConfigGenerator, ConfigSuggestion } from '../core/auto-config-generator.js';
 import { ProtocolDetector } from '../core/protocol-detector.js';
@@ -162,6 +162,80 @@ export class ConfigManager extends EventEmitter {
     } else {
       this.config.web.port = port;
     }
+    await this.saveConfig();
+  }
+
+  // ===== AI API 网关配置 =====
+
+  getAIGatewayConfig(): AIGatewayConfig | undefined {
+    return this.config.aiGateway;
+  }
+
+  getAIProviders(): AIProviderConfig[] {
+    return this.config.providers || [];
+  }
+
+  getAIProviderBySlug(slug: string): AIProviderConfig | undefined {
+    return this.getAIProviders().find(p => p.slug === slug);
+  }
+
+  addAIProvider(provider: AIProviderConfig): boolean {
+    if (!isValidProviderSlug(provider.slug)) {
+      return false;
+    }
+    if (this.getAIProviderBySlug(provider.slug)) {
+      return false;
+    }
+    if (!this.config.providers) {
+      this.config.providers = [];
+    }
+    this.config.providers.push(provider);
+    this.saveConfig().catch(err => console.error('Failed to save config:', err));
+    this.emit('ai-providers-changed');
+    return true;
+  }
+
+  updateAIProvider(id: string, updates: Partial<AIProviderConfig>): boolean {
+    const provider = this.getAIProviders().find(p => p.id === id);
+    if (!provider) {
+      return false;
+    }
+    // 改 slug 时校验格式与唯一性（排除自身）
+    if (updates.slug !== undefined && updates.slug !== provider.slug) {
+      if (!isValidProviderSlug(updates.slug) || this.getAIProviderBySlug(updates.slug)) {
+        return false;
+      }
+    }
+    for (const [key, value] of Object.entries(updates)) {
+      if (key === 'id') {
+        continue; // id 不可改
+      }
+      if (key === 'apiKey' && value === '') {
+        continue; // 空串 = 不修改
+      }
+      (provider as any)[key] = value;
+    }
+    this.saveConfig().catch(err => console.error('Failed to save config:', err));
+    this.emit('ai-providers-changed');
+    return true;
+  }
+
+  removeAIProvider(id: string): boolean {
+    if (!this.config.providers) {
+      return false;
+    }
+    const index = this.config.providers.findIndex(p => p.id === id);
+    if (index === -1) {
+      return false;
+    }
+    this.config.providers.splice(index, 1);
+    this.saveConfig().catch(err => console.error('Failed to save config:', err));
+    this.emit('ai-providers-changed');
+    return true;
+  }
+
+  async setAIGateway(cfg: AIGatewayConfig): Promise<void> {
+    this.config.aiGateway = cfg;
     await this.saveConfig();
   }
 
@@ -567,7 +641,12 @@ export class ConfigManager extends EventEmitter {
   }
 
   toggleTool(serverName: string, toolName: string, enabled: boolean): boolean {
-    // This would need actual implementation based on your tool management system  
+    // This would need actual implementation based on your tool management system
     return true;
   }
+}
+
+// AI 供应商 slug 格式：小写字母/数字开头，后续小写字母/数字/连字符
+export function isValidProviderSlug(slug: string): boolean {
+  return /^[a-z0-9][a-z0-9-]*$/.test(slug);
 }
