@@ -82,6 +82,7 @@ describe('AI providers CRUD API', () => {
       body: JSON.stringify({ name: '深度求索', apiKey: '' }),
     });
     expect(resp.status).toBe(200);
+    await new Promise(r => setTimeout(r, 150)); // 写方法落盘为异步 fire-and-forget
     const cfg = JSON.parse(await fsPromises.readFile(configPath, 'utf-8'));
     expect(cfg.providers[0].apiKey).toBe('sk-1234567890ab');
     expect(cfg.providers[0].name).toBe('深度求索');
