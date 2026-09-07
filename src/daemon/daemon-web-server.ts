@@ -15,6 +15,10 @@ import { ConfigManager } from '../config/config-manager.js';
 import { globalLogManager } from '../logging/server-log-manager.js';
 import { ServerNameValidator } from '../utils/server-name-validator.js';
 import { createExpressAuthMiddleware } from '../middleware/auth.js';
+import { randomUUID } from 'crypto';
+import { AIProviderConfig } from '../types/index.js';
+import { isValidProviderSlug } from '../config/config-manager.js';
+import { listUpstreamModels } from '../ai-gateway/upstream/model-lister.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -165,6 +169,16 @@ export class DaemonWebServer {
     // Daemon-specific API
     router.get('/daemon/clients', this.handleGetClients.bind(this));
     router.post('/daemon/reload', this.handleReloadConfig.bind(this));
+
+    // AI gateway & providers API
+    router.get('/ai-gateway/status', this.handleGetAiGatewayStatus.bind(this));
+    router.put('/ai-gateway/settings', this.handleUpdateAiGatewaySettings.bind(this));
+    router.get('/ai-providers', this.handleGetAiProviders.bind(this));
+    router.post('/ai-providers', this.handleAddAiProvider.bind(this));
+    router.put('/ai-providers/:id', this.handleUpdateAiProvider.bind(this));
+    router.delete('/ai-providers/:id', this.handleDeleteAiProvider.bind(this));
+    router.post('/ai-providers/:id/test', this.handleTestAiProvider.bind(this));
+    router.post('/ai-providers/:id/models', this.handleFetchProviderModels.bind(this));
     
     // Log management API
     router.get('/logs', this.handleGetAllLogs.bind(this));
@@ -557,6 +571,142 @@ export class DaemonWebServer {
         message: (error as Error).message
       });
     }
+  }
+
+  // ===== AI gateway & providers handlers =====
+
+  private async handleGetAiGatewayStatus(req: express.Request, res: express.Response) {
+    const cfg = this.configManager.getAIGatewayConfig();
+    const gateway = this.daemon.getAiGateway?.();
+    res.json({
+      running: gateway?.isRunning() ?? false,
+      enabled: cfg?.enabled ?? false,
+      port: cfg?.port ?? 62125,
+      host: cfg?.host ?? '127.0.0.1',
+      apiKey: cfg?.apiKey ?? '',
+      providers: this.configManager.getAIProviders().map(p => ({
+        id: p.id, slug: p.slug, dialect: p.dialect, enabled: p.enabled,
+      })),
+    });
+  }
+
+  private async handleUpdateAiGatewaySettings(req: express.Request, res: express.Response) {
+    try {
+      const { enabled, port, host, resetApiKey } = req.body || {};
+      const cfg = this.configManager.getAIGatewayConfig() || {
+        enabled: false, port: 62125, host: '127.0.0.1', apiKey: '',
+      };
+      if (typeof enabled === 'boolean') {
+        cfg.enabled = enabled;
+      }
+      if (typeof port === 'number' && port > 0 && port < 65536) {
+        cfg.port = port;
+      }
+      if (typeof host === 'string' && host) {
+        cfg.host = host;
+      }
+      if (resetApiKey === true) {
+        cfg.apiKey = `ad-sk-${randomUUID()}`;
+      }
+      // 启用时确保有 apiKey（首次自动生成）
+      if (cfg.enabled && !cfg.apiKey) {
+        cfg.apiKey = `ad-sk-${randomUUID()}`;
+      }
+      await this.configManager.setAIGateway(cfg);
+      await this.daemon.restartAiGateway();
+      res.json({ success: true, message: 'AI 网关设置已更新', apiKey: cfg.apiKey, enabled: cfg.enabled, port: cfg.port, host: cfg.host });
+    } catch (error) {
+      res.status(500).json({ error: '更新 AI 网关设置失败', message: (error as Error).message });
+    }
+  }
+
+  // apiKey 脱敏：仅保留末 4 位；短 key 全遮蔽
+  private maskKey(key: string): string {
+    if (!key || key.length <= 4) {
+      return '****';
+    }
+    return '*'.repeat(key.length - 4) + key.slice(-4);
+  }
+
+  private maskProvider(p: AIProviderConfig): AIProviderConfig & { apiKeyMasked: string } {
+    return { ...p, apiKey: this.maskKey(p.apiKey), apiKeyMasked: this.maskKey(p.apiKey) };
+  }
+
+  private async handleGetAiProviders(req: express.Request, res: express.Response) {
+    res.json(this.configManager.getAIProviders().map(p => this.maskProvider(p)));
+  }
+
+  private async handleAddAiProvider(req: express.Request, res: express.Response) {
+    const { slug, name, dialect, baseUrl, apiKey, enabled, models, headers } = req.body || {};
+    if (!slug || !dialect || !baseUrl || !apiKey) {
+      res.status(400).json({ error: 'slug, dialect, baseUrl, apiKey 为必填项' });
+      return;
+    }
+    if (!['openai', 'anthropic', 'gemini'].includes(dialect)) {
+      res.status(400).json({ error: `invalid dialect: ${dialect}` });
+      return;
+    }
+    if (!isValidProviderSlug(slug)) {
+      res.status(400).json({ error: 'slug 格式非法：须匹配 /^[a-z0-9][a-z0-9-]*$/' });
+      return;
+    }
+    const provider: AIProviderConfig = {
+      id: randomUUID(), slug, name, dialect, baseUrl, apiKey,
+      enabled: enabled !== false, models, headers,
+    };
+    if (!this.configManager.addAIProvider(provider)) {
+      res.status(400).json({ error: `slug "${slug}" 已存在或格式非法` });
+      return;
+    }
+    res.status(201).json({ message: '供应商已创建', provider: this.maskProvider(provider) });
+  }
+
+  private async handleUpdateAiProvider(req: express.Request, res: express.Response) {
+    const { id } = req.params;
+    const updates = req.body || {};
+    delete (updates as any).id;
+    if (!this.configManager.updateAIProvider(id, updates)) {
+      res.status(400).json({ error: '更新失败：id 不存在、slug 冲突或格式非法' });
+      return;
+    }
+    const updated = this.configManager.getAIProviders().find(p => p.id === id);
+    res.json({ message: '供应商已更新', provider: updated ? this.maskProvider(updated) : null });
+  }
+
+  private async handleDeleteAiProvider(req: express.Request, res: express.Response) {
+    const { id } = req.params;
+    if (!this.configManager.removeAIProvider(id)) {
+      res.status(404).json({ error: '供应商不存在' });
+      return;
+    }
+    res.json({ message: '供应商已删除', id });
+  }
+
+  private async handleTestAiProvider(req: express.Request, res: express.Response) {
+    const provider = this.configManager.getAIProviders().find(p => p.id === req.params.id);
+    if (!provider) {
+      res.status(404).json({ error: '供应商不存在' });
+      return;
+    }
+    // 测试时允许用请求体带来的新 apiKey（编辑未保存时测试）
+    const withOverrides = { ...provider, ...(req.body?.apiKey ? { apiKey: req.body.apiKey } : {}) };
+    const result = await listUpstreamModels(withOverrides);
+    res.json({ ok: result.ok, status: result.status, message: result.message, modelCount: result.models.length });
+  }
+
+  private async handleFetchProviderModels(req: express.Request, res: express.Response) {
+    const provider = this.configManager.getAIProviders().find(p => p.id === req.params.id);
+    if (!provider) {
+      res.status(404).json({ error: '供应商不存在' });
+      return;
+    }
+    const withOverrides = { ...provider, ...(req.body?.apiKey ? { apiKey: req.body.apiKey } : {}) };
+    const result = await listUpstreamModels(withOverrides);
+    if (!result.ok) {
+      res.status(502).json({ error: '拉取上游模型列表失败', message: result.message, status: result.status });
+      return;
+    }
+    res.json({ models: result.models });
   }
 
   // WebSocket helper methods
