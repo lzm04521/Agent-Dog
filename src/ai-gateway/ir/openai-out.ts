@@ -21,11 +21,6 @@ export function irToOpenAI(ir: IRRequest, provider: AIProviderConfig, model: str
   const toolResultById = new Map<string, { content: string }>();
 
   for (const msg of ir.messages) {
-    // 上一轮 assistant 的 tool_calls 之后必须紧跟 tool 消息：
-    // 无论下一条是什么，先冲刷 pending（缺失补空 content 容错，避免上游 400）
-    if (msg.role !== 'assistant') {
-      flushToolResults(messages, pendingToolCalls, toolResultById);
-    }
     if (msg.role === 'assistant') {
       const toolCalls: any[] = [];
       let text = '';
@@ -48,7 +43,8 @@ export function irToOpenAI(ir: IRRequest, provider: AIProviderConfig, model: str
         ...(toolCalls.length ? { tool_calls: toolCalls } : {}),
       });
     } else {
-      // user 轮：先输出本轮 toolResult（若有），再输出普通内容
+      // user 轮：先收集本轮 toolResult 与普通内容，再冲刷 pending tool 调用
+      //（openai 约束：assistant tool_calls 之后每个调用必须紧跟一条 role:tool 消息，缺失补空 content）
       const normalParts: any[] = [];
       for (const part of msg.content) {
         if (part.kind === 'toolResult') {
@@ -59,7 +55,7 @@ export function irToOpenAI(ir: IRRequest, provider: AIProviderConfig, model: str
           normalParts.push({ type: 'image_url', image_url: { url: `data:${part.mime};base64,${part.data}` } });
         }
       }
-      if (toolResultById.size > 0) {
+      if (pendingToolCalls.length > 0) {
         flushToolResults(messages, pendingToolCalls, toolResultById);
       }
       if (normalParts.length > 0) {
