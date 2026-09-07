@@ -1,11 +1,11 @@
-# MCPDog 🐕 — MCP 服务器统一管理网关（团队维护版）
+# AgentDog 🐕 — MCP 服务器统一管理网关 & AI API 网关
 
-> **一次配置，统一管理所有 MCP 服务器**
+> **一次配置，统一管理所有 MCP 服务器；一个端点，统一接入所有 AI 供应商**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
 
-MCPDog（npm 包名 `agentdog`）是一个 MCP（Model Context Protocol）服务器统一管理网关：把多个 MCP 子服务器聚合成一个统一入口，供 Claude Desktop、Cursor、Claude Code 等 MCP 客户端使用。由 SIE 运维团队基于上游开源项目维护，包含 Windows 平台兼容修复、Web 界面汉化、daemon 常驻模式与内置 AI API 网关等增强。
+AgentDog（npm 包名 `agentdog`）是一个 MCP（Model Context Protocol）服务器统一管理网关，fork 自运维团队 [MCP-Dog](https://github.com/SIE-Operations-and-Maintenance-Team/mcpdog) 并持续增强：把多个 MCP 子服务器聚合成一个统一入口，供 Claude Desktop、Cursor、Claude Code 等 MCP 客户端使用；并内置 AI API 网关，让 Claude Code 统一接入任意 AI 供应商。增强内容包括 Windows 平台兼容修复、Web 界面汉化、daemon 常驻模式与开机自启等。
 
 ## 🏗️ 架构概览
 
@@ -18,7 +18,7 @@ MCPDog（npm 包名 `agentdog`）是一个 MCP（Model Context Protocol）服务
           └──────────────────────┼──────────────────────┘
                                  │
                     ┌─────────────▼─────────────┐
-                    │         MCPDog             │
+                    │         AgentDog             │
                     │  （统一入口 + 智能路由      │
                     │    + AI API 网关）         │
                     └──┬──────────────┬─────────┘
@@ -35,9 +35,9 @@ MCPDog（npm 包名 `agentdog`）是一个 MCP（Model Context Protocol）服务
 
 ### 核心价值
 
-- **🔗 一次配置**：客户端只连 MCPDog 一个入口，不用逐个配置子服务器
+- **🔗 一次配置**：客户端只连 AgentDog 一个入口，不用逐个配置子服务器
 - **🔄 统一界面**：所有子服务器的工具合并成一张清单暴露给客户端
-- **⚡ 智能路由**：MCPDog 自动把工具调用路由到对应的子服务器
+- **⚡ 智能路由**：AgentDog 自动把工具调用路由到对应的子服务器
 - **🌐 多传输协议**：子服务器支持 stdio / HTTP SSE / Streamable HTTP 三种接入方式
 - **📊 集中管理**：Web 管理界面可视化增删改查服务器、启停、工具开关
 - **🤖 AI API 网关**：内置 Anthropic Messages 兼容端点，Claude Code 统一接入任意 AI 供应商
@@ -69,11 +69,11 @@ npx agentdog@latest daemon start
 }
 ```
 
-> 客户端连的是 MCPDog 聚合入口（stdio proxy），前提是 daemon 已启动并配好子服务器；daemon 未运行时 proxy 会自动拉起一次。
+> 客户端连的是 AgentDog 聚合入口（stdio proxy），前提是 daemon 已启动并配好子服务器；daemon 未运行时 proxy 会自动拉起一次。
 
 ## 📦 部署方式
 
-MCPDog 以 daemon 常驻进程形态部署，同一台机器支持以下安装方式，按使用时长选择：
+AgentDog 以 daemon 常驻进程形态部署，同一台机器支持以下安装方式，按使用时长选择：
 
 ### 方式一：npx 直接运行（临时体验）
 
@@ -209,7 +209,7 @@ export ANTHROPIC_SMALL_FAST_MODEL=deepseek:deepseek-chat
 
 ### 工具冲突处理
 
-多个子服务器存在同名工具时，MCPDog 自动将工具重命名为 `服务器名-工具名`（如 `db-tools-db_query`），调用时先校验完整服务器前缀再剥离转发到原服务器，客户端无感知。
+多个子服务器存在同名工具时，AgentDog 自动将工具重命名为 `服务器名-工具名`（如 `db-tools-db_query`），调用时先校验完整服务器前缀再剥离转发到原服务器，客户端无感知。
 
 ## 🐛 常见问题
 
