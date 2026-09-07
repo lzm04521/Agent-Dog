@@ -122,6 +122,40 @@ class APIClient {
     // Store the token on successful login
     localStorage.setItem('mcpdog_token', token);
   }
+
+  // ===== AI 网关与供应商 =====
+
+  getGatewayStatus() {
+    return this.get('/api/ai-gateway/status');
+  }
+
+  updateGatewaySettings(data: { enabled?: boolean; port?: number; host?: string; resetApiKey?: boolean }) {
+    return this.put('/api/ai-gateway/settings', data);
+  }
+
+  getAIProviders() {
+    return this.get('/api/ai-providers');
+  }
+
+  addAIProvider(provider: Partial<import('../types/ai').AIProvider>) {
+    return this.post('/api/ai-providers', provider);
+  }
+
+  updateAIProvider(id: string, updates: Partial<import('../types/ai').AIProvider>) {
+    return this.put(`/api/ai-providers/${id}`, updates);
+  }
+
+  deleteAIProvider(id: string) {
+    return this.delete(`/api/ai-providers/${id}`);
+  }
+
+  testAIProvider(id: string, apiKey?: string) {
+    return this.post(`/api/ai-providers/${id}/test`, apiKey ? { apiKey } : undefined);
+  }
+
+  fetchProviderModels(id: string, apiKey?: string) {
+    return this.post(`/api/ai-providers/${id}/models`, apiKey ? { apiKey } : undefined);
+  }
 }
 
 // Export singleton instance
