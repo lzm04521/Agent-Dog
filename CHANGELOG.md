@@ -2,6 +2,12 @@
 
 本项目所有显著变更都会记录在此文件中。
 
+## [未发布]
+
+- **调整（对外约定）**：daemon IPC 与 Web 管理界面合并为单一 TCP 端口。原 `--daemon-port`（默认 9999）的独立 TCP IPC 通道删除，CLI `status`/`reload` 与 `proxy` 挂载全部改走 Web 端口 HTTP（`POST /api/mcp`）；传入 `--daemon-port` 将直接报错并提示移除该参数。
+- **调整（安全）**：Web 界面默认监听收紧为 `localhost`（原为 `0.0.0.0`）。需要远程访问时须显式配置 `web.host: "0.0.0.0"` 且强制设置 `MCPDOG_AUTH_TOKEN`，缺一拒绝启动。
+- **优化**：daemon 客户端由手写 TCP 行协议改为 HTTP（Node 内置 fetch），大响应（如聚合 `tools/list`）由 HTTP 分帧承载，消除跨 TCP 分片解析类缺陷的结构性温床；daemon 重启后 proxy 请求自愈改为"探活 + 单次重试"。
+
 ## [1.0.6] - 2026-09-06
 
 - **调整（对外约定）**：npm 包名由 `@keysqiu/mcpdog` 调整为 `@lzm04521/mcpdog`，安装与 npx 命令请使用新包名。本版本为 `@lzm04521/mcpdog` 首个发布，包含 `@keysqiu/mcpdog` 1.0.4 / 1.0.5 的全部变更（见下）；新版本发布后旧包将标记弃用并指向新包。
