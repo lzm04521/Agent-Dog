@@ -152,6 +152,18 @@ export class DaemonCommands {
         CLIUtils.info(`Auto-detected available web port: ${webPort}`);
       }
 
+      // AI 网关端口：显式 --gateway-port 时持久化并启用网关（复用 --web-port 决策链模式）
+      const gatewayPort = parseInt(options['gateway-port']);
+      if (!isNaN(gatewayPort) && gatewayPort > 0) {
+        const gatewayCfg = this.configManager.getAIGatewayConfig() || {
+          enabled: true, port: gatewayPort, host: '127.0.0.1', apiKey: '',
+        };
+        gatewayCfg.enabled = true;
+        gatewayCfg.port = gatewayPort;
+        await this.configManager.setAIGateway(gatewayCfg);
+        CLIUtils.info(`AI gateway enabled, port saved to config: ${gatewayPort}`);
+      }
+
       const daemon = new MCPDogDaemon({
         configPath: this.configManager.getConfigPath(),
         webPort,

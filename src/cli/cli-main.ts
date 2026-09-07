@@ -23,6 +23,7 @@ async function main() {
         'dashboard-port': { type: 'string' },
         'mcp-http-port': { type: 'string' },
         'web-port': { type: 'string' }, // deprecated, kept for backward compatibility
+        'gateway-port': { type: 'string' }, // AI API gateway port (daemon start)
         'daemon-port': { type: 'string' },
         'pid-file': { type: 'string' },
         'stdio-only': { type: 'boolean' },

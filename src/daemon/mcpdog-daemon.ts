@@ -8,6 +8,7 @@ import { Server as HttpServer } from 'http';
 import { MCPDogServer } from '../core/mcpdog-server.js';
 import { ConfigManager } from '../config/config-manager.js';
 import { StreamableHttpMCPServer } from '../streamable-http-server.js';
+import { AiGatewayServer } from '../ai-gateway/gateway-server.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -30,6 +31,7 @@ export class MCPDogDaemon extends EventEmitter {
   private configManager: ConfigManager;
   private webServer?: HttpServer;
   private httpMCPServer?: StreamableHttpMCPServer;
+  private aiGateway?: AiGatewayServer;
   // HTTP 模式下的客户端活跃记录（替代原 IPC socket 注册表）
   private clientInfos = new Map<string, { type: string; lastSeen: Date }>();
   private config: DaemonConfig;
@@ -236,6 +238,19 @@ export class MCPDogDaemon extends EventEmitter {
         }
       }
 
+      // AI API 网关（可选，aiGateway.enabled 才启动）
+      const gatewayConfig = this.configManager.getAIGatewayConfig();
+      if (gatewayConfig?.enabled) {
+        try {
+          this.aiGateway = new AiGatewayServer(this.configManager);
+          await this.aiGateway.start();
+        } catch (error) {
+          console.error('[DAEMON] Failed to start AI gateway:', error);
+          // 网关可选，不阻塞 daemon 启动
+          this.aiGateway = undefined;
+        }
+      }
+
       // Write PID file（含版本号，供 daemon start 检测版本差异自动升级重启）
       if (this.config.pidFile) {
         let version = 'unknown';
@@ -262,6 +277,16 @@ export class MCPDogDaemon extends EventEmitter {
       console.log('[DAEMON] Stopping MCPDog daemon...');
       
       this.isRunning = false;
+
+      // Stop AI gateway first
+      if (this.aiGateway) {
+        try {
+          await this.aiGateway.stop();
+        } catch (error) {
+          console.error('[DAEMON] Error stopping AI gateway:', error);
+        }
+        this.aiGateway = undefined;
+      }
 
       // Stop HTTP MCP server if running
       if (this.httpMCPServer) {
@@ -304,5 +329,22 @@ export class MCPDogDaemon extends EventEmitter {
     const webServer = new DaemonWebServer(this, port, this.configManager.getWebHost());
     await webServer.start();
     console.log(`[DAEMON] Web interface started on port ${port}`);
+  }
+
+  // AI gateway restart after settings change (stop → start)
+  async restartAiGateway(): Promise<void> {
+    if (this.aiGateway) {
+      await this.aiGateway.stop();
+      this.aiGateway = undefined;
+    }
+    const gatewayConfig = this.configManager.getAIGatewayConfig();
+    if (gatewayConfig?.enabled) {
+      this.aiGateway = new AiGatewayServer(this.configManager);
+      await this.aiGateway.start();
+    }
+  }
+
+  getAiGateway(): AiGatewayServer | undefined {
+    return this.aiGateway;
   }
 }

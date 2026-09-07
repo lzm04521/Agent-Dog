@@ -36,7 +36,7 @@ describe('parseSSEStream', () => {
 });
 
 describe('sendUpstream', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.unstubAllGlobals(); });
 
   it('返回状态/头与 text()', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
