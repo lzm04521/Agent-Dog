@@ -6,7 +6,6 @@ import { ConfigManager } from '../../config/config-manager.js';
 import { CLIUtils } from '../cli-utils.js';
 import { DaemonCommands } from './daemon-commands.js';
 import { spawn } from 'child_process';
-import { DaemonClient } from '../../daemon/daemon-client.js';
 import { MCPDogDaemon, DaemonConfig } from '../../daemon/mcpdog-daemon.js';
 import { createServer } from 'net';
 import fs from 'fs/promises';
@@ -19,7 +18,6 @@ interface StartupConfig {
   enableDashboard: boolean;
   dashboardPort: number;
   httpPort: number;
-  daemonPort: number;
   pidFile: string;
 }
 
@@ -34,6 +32,14 @@ export class StartCommand {
     if (options.help) {
       this.showHelp();
       return;
+    }
+
+    if (options['daemon-port']) {
+      CLIUtils.error(
+        '--daemon-port has been removed: daemon IPC has been merged into the Web port. ' +
+        'Use --web-port instead (or rely on the persisted web.port config).'
+      );
+      process.exit(1);
     }
 
     try {
@@ -72,7 +78,6 @@ ${CLIUtils.colorize('Available actions:', 'yellow')}
     const dashboardPort = parseInt(options['dashboard-port']) ||
                          parseInt(options['web-port']) || 61125;
     const httpPort = parseInt(options['mcp-http-port']) || 4000;
-    const daemonPort = parseInt(options['daemon-port']) || 9999;
     const pidFile = options['pid-file'] || path.join(os.homedir(), '.mcpdog', 'mcpdog.pid');
 
     // 确定启动模式
@@ -94,7 +99,6 @@ ${CLIUtils.colorize('Available actions:', 'yellow')}
       enableDashboard,
       dashboardPort,
       httpPort,
-      daemonPort,
       pidFile
     };
   }
@@ -236,7 +240,7 @@ ${CLIUtils.colorize('Common solutions:', 'yellow')}
      agentdog config validate
      
   4. Check if port is already in use:
-     lsof -i :${options['daemon-port'] || 9999}
+     lsof -i :61125
 
 ${CLIUtils.colorize('Need help?', 'cyan')}
   agentdog --help          # Show all commands
@@ -285,7 +289,6 @@ ${CLIUtils.colorize('Options:', 'yellow')}
   -c, --config <path>        Configuration file path (default: ./mcpdog.config.json)
   --dashboard-port <port>    Dashboard UI port (default: 61125, auto-detected)
   --mcp-http-port <port>     HTTP transport port (default: 4000, auto-detected)
-  --daemon-port <port>       IPC daemon port (default: 9999)
   --pid-file <path>          PID file location (default: ~/.mcpdog/mcpdog.pid)
   
   --stdio-only               Only enable stdio transport + dashboard

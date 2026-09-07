@@ -156,12 +156,10 @@ ${CLIUtils.colorize('Usage:', 'yellow')}
 
 ${CLIUtils.colorize('Options:', 'yellow')}
   --web-port <port>     Enable Web interface port (deprecated, use daemon mode)
-  --daemon-port <port>  Connect to daemon port (default: 9999)
   -c, --config <path>   Configuration file path
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
   agentdog serve                    # Connect to daemon in stdio mode
-  agentdog serve --daemon-port 9999 # Connect to daemon on specified port
 `,
 
       daemon: `
@@ -178,7 +176,6 @@ ${CLIUtils.colorize('Subcommands:', 'yellow')}
   autostart               Enable/disable daemon auto-start on login
 
 ${CLIUtils.colorize('Start Options:', 'yellow')}
-  --daemon-port <port>    IPC port (default: 9999)
   --web-port <port>       Web interface port (auto-detected from 61125 if not specified)
   --pid-file <path>       PID file path
 

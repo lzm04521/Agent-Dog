@@ -90,7 +90,13 @@ export class DaemonCommands {
   }
 
   async start(args: string[], options: any): Promise<void> {
-    const port = parseInt(options['daemon-port']) || 9999;
+    if (options['daemon-port']) {
+      CLIUtils.error(
+        '--daemon-port has been removed: daemon IPC has been merged into the Web port. ' +
+        'Use --web-port instead (or rely on the persisted web.port config).'
+      );
+      process.exit(1);
+    }
     let webPort = parseInt(options['web-port']);
     const explicitWebPort = !isNaN(webPort) && webPort > 0;
     const pidFile = options['pid-file'] || this.getDefaultPidFile();
@@ -184,7 +190,6 @@ export class DaemonCommands {
       }
 
       CLIUtils.success(`MCPDog daemon started (PID: ${process.pid})`);
-      CLIUtils.info(`IPC port: ${port}`);
       CLIUtils.info(`Web interface: http://localhost:${webPort}`);
       CLIUtils.info(`Config file: ${this.configManager.getConfigPath()}`);
       CLIUtils.info('Press Ctrl+C to stop daemon');
@@ -276,43 +281,27 @@ export class DaemonCommands {
   }
 
   async status(args: string[], options: any): Promise<void> {
-    const port = parseInt(options['daemon-port']) || 9999;
-    
+    if (options['daemon-port']) {
+      CLIUtils.error('--daemon-port has been removed: daemon IPC has been merged into the Web port.');
+      process.exit(1);
+    }
+
+    await this.configManager.loadConfig();
+    const port = this.configManager.getWebPort() ?? 61125;
+
     try {
+      // 旧 status 有 5s 超时；新客户端 requestTimeoutMs 默认 120s，对 CLI 状态查询过长，显式收窄。
+      // connectAttempts/connectIntervalMs 仅在调 connect() 时生效，此处未调，无需传。
       const client = new DaemonClient({
-        baseUrl: `http://localhost:${this.configManager.getWebPort() ?? 61125}`,
+        baseUrl: `http://localhost:${port}`,
         clientType: 'cli',
-        silent: true
+        silent: true,
+        requestTimeoutMs: 5000
       });
 
-      await client.connect();
-
-      client.on('status', (status) => {
-        this.displayFriendlyStatus(status, port);
-        client.disconnect();
-        process.exit(0);
-      });
-
-      client.getStatus();
-      
-      // Timeout handling
-      setTimeout(() => {
-        console.log(`
-❌ ${CLIUtils.colorize('Status check timeout', 'red')}
-
-${CLIUtils.colorize('Possible issues:', 'yellow')}
-  • Daemon not responding on port ${port}
-  • Network connectivity issues
-  • Daemon overloaded
-
-${CLIUtils.colorize('Try:', 'cyan')}
-  agentdog start      # Start the daemon
-  agentdog stop       # Stop and restart
-`);
-        client.disconnect();
-        process.exit(1);
-      }, 5000);
-      
+      const status = await client.getStatus();
+      this.displayFriendlyStatus(status, port);
+      process.exit(0);
     } catch (error) {
       this.displayConnectionError(error as Error, port);
     }
@@ -327,7 +316,7 @@ ${CLIUtils.colorize('Try:', 'cyan')}
 ✅ ${CLIUtils.colorize('MCPDog daemon is running', 'green')}
 
 ${CLIUtils.colorize('Daemon Info:', 'cyan')}
-  🔌 IPC Port: ${port}
+  🌐 Web port: ${port}
   ⏱️  Uptime: ${this.formatUptime(daemon.uptime || 0)}
   👥 Connected clients: ${daemon.clients?.length || 0}
 
@@ -379,11 +368,8 @@ ${CLIUtils.colorize('Possible Solutions:', 'yellow')}
   2. Check if daemon is running:
      ps aux | grep mcpdog
 
-  3. Check port conflicts:
+  3. Check web port conflicts:
      lsof -i :${port}
-
-  4. Use different port:
-     agentdog status --daemon-port 9998
 
 ${CLIUtils.colorize('Quick Start:', 'cyan')}
   agentdog start --config simple-config.json --web-port 61125
@@ -405,25 +391,25 @@ ${CLIUtils.colorize('Quick Start:', 'cyan')}
   }
 
   async reload(args: string[], options: any): Promise<void> {
-    const port = parseInt(options['daemon-port']) || 9999;
-    
+    if (options['daemon-port']) {
+      CLIUtils.error('--daemon-port has been removed: daemon IPC has been merged into the Web port.');
+      process.exit(1);
+    }
+
+    await this.configManager.loadConfig();
+    const port = this.configManager.getWebPort() ?? 61125;
+
     try {
       const client = new DaemonClient({
-        baseUrl: `http://localhost:${this.configManager.getWebPort() ?? 61125}`,
+        baseUrl: `http://localhost:${port}`,
         clientType: 'cli',
-        silent: true
+        silent: true,
+        requestTimeoutMs: 5000
       });
 
-      await client.connect();
-
-      client.reloadConfig();
-              CLIUtils.success('Configuration reload request sent');
-      
-      setTimeout(() => {
-        client.disconnect();
-        process.exit(0);
-      }, 1000);
-      
+      await client.reloadConfig();
+      CLIUtils.success('Configuration reload requested');
+      process.exit(0);
     } catch (error) {
       CLIUtils.error('Failed to connect to daemon:', (error as Error).message);
       process.exit(1);
@@ -459,7 +445,6 @@ ${CLIUtils.colorize('Quick Start:', 'cyan')}
         description: 'Start MCPDog daemon',
         handler: this.start.bind(this),
         options: {
-          'daemon-port': 'Daemon IPC port (default: 9999)',
           'web-port': 'Enable Web interface port',
           'pid-file': 'PID file path'
         }
@@ -475,7 +460,6 @@ ${CLIUtils.colorize('Quick Start:', 'cyan')}
         description: 'Restart MCPDog daemon',
         handler: this.restart.bind(this),
         options: {
-          'daemon-port': 'Daemon IPC port (default: 9999)',
           'web-port': 'Enable Web interface port',
           'pid-file': 'PID file path'
         }
@@ -483,16 +467,12 @@ ${CLIUtils.colorize('Quick Start:', 'cyan')}
       'daemon:status': {
         description: 'Check daemon status',
         handler: this.status.bind(this),
-        options: {
-          'daemon-port': 'Daemon IPC port (default: 9999)'
-        }
+        options: {}
       },
       'daemon:reload': {
         description: 'Reload daemon configuration',
         handler: this.reload.bind(this),
-        options: {
-          'daemon-port': 'Daemon IPC port (default: 9999)'
-        }
+        options: {}
       }
     };
   }
