@@ -21,7 +21,7 @@ export class DiagnoseCommands {
     } else {
       const [serverName] = args;
       if (!serverName) {
-        CLIUtils.error('使用方法: mcpdog diagnose <server-name> 或 mcpdog diagnose --all');
+        CLIUtils.error('使用方法: agentdog diagnose <server-name> 或 agentdog diagnose --all');
         return;
       }
       await this.diagnoseServer(serverName, options);
@@ -338,12 +338,12 @@ export class DiagnoseCommands {
 
   private showHelp(): void {
     console.log(`
-${CLIUtils.colorize('mcpdog diagnose', 'cyan')} - 诊断和修复
+${CLIUtils.colorize('agentdog diagnose', 'cyan')} - 诊断和修复
 
 ${CLIUtils.colorize('使用方法:', 'yellow')}
-  mcpdog diagnose <server-name> [options]
-  mcpdog diagnose --all [options]
-  mcpdog diagnose --health-check
+  agentdog diagnose <server-name> [options]
+  agentdog diagnose --all [options]
+  agentdog diagnose --health-check
 
 ${CLIUtils.colorize('选项:', 'yellow')}
   --all                  诊断所有服务器
@@ -358,10 +358,10 @@ ${CLIUtils.colorize('诊断内容:', 'yellow')}
   • 健康评分
 
 ${CLIUtils.colorize('示例:', 'yellow')}
-  mcpdog diagnose my-server                # 诊断单个服务器
-  mcpdog diagnose my-server --fix          # 诊断并自动修复
-  mcpdog diagnose --all                    # 诊断所有服务器
-  mcpdog diagnose --health-check           # 系统健康检查
+  agentdog diagnose my-server                # 诊断单个服务器
+  agentdog diagnose my-server --fix          # 诊断并自动修复
+  agentdog diagnose --all                    # 诊断所有服务器
+  agentdog diagnose --health-check           # 系统健康检查
 `);
   }
 }

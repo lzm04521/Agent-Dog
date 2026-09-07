@@ -113,7 +113,7 @@ export class CLIUtils {
   static showGlobalHelp() {
     if (this.env.json) {
       this.jsonOutput({
-        usage: 'mcpdog <command> [options]',
+        usage: 'agentdog <command> [options]',
         commands: this.getAvailableCommands()
       });
       return;
@@ -123,7 +123,7 @@ export class CLIUtils {
 ${this.colorize('🐕 MCPDog', 'cyan')} - Universal MCP Server Manager
 
 ${this.colorize('Usage:', 'yellow')}
-  mcpdog <command> [options]
+  agentdog <command> [options]
 
 ${this.colorize('Main Commands:', 'yellow')}
   ${this.colorize('start', 'green')}            Start MCPDog daemon (recommended)
@@ -153,11 +153,11 @@ ${this.colorize('Global Options:', 'yellow')}
   --no-color             Disable color output
 
 ${this.colorize('Quick Start:', 'yellow')}
-  1. mcpdog start --config my-config.json    # Start daemon
-  2. Configure MCP client with: mcpdog proxy
-  3. mcpdog status                           # Check status
+  1. agentdog start --config my-config.json    # Start daemon
+  2. Configure MCP client with: agentdog proxy
+  3. agentdog status                           # Check status
 
-Use ${this.colorize('mcpdog <command> --help', 'cyan')} for specific command help
+Use ${this.colorize('agentdog <command> --help', 'cyan')} for specific command help
 `);
   }
 

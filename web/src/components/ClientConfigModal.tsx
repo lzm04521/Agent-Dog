@@ -24,9 +24,9 @@ export const ClientConfigModal: React.FC = () => {
   // STDIO configuration
   const stdioConfig = {
     "mcpServers": {
-      "mcpdog": {
+      "agentdog": {
         "command": "npx",
-        "args": ["@lzm04521/mcpdog@latest"]
+        "args": ["agentdog@latest"]
       }
     }
   };
@@ -34,7 +34,7 @@ export const ClientConfigModal: React.FC = () => {
   // HTTP Streamable configuration
   const httpConfig = {
     "mcpServers": {
-      "mcpdog-http": {
+      "agentdog-http": {
         "type": "streamable-http",
         "url": "http://localhost:4000",
         ...(shouldIncludeAuth && {

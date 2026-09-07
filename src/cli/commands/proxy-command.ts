@@ -86,7 +86,7 @@ export class ProxyCommand {
       // Only output error on connection failure, then exit immediately
       // Use process.stderr.write instead of CLIUtils to avoid color codes
       process.stderr.write(`MCPDog: Failed to connect to daemon on port ${daemonPort}\n`);
-      process.stderr.write(`Please ensure daemon is running: mcpdog daemon start\n`);
+      process.stderr.write(`Please ensure daemon is running: agentdog daemon start\n`);
       process.exit(1);
     }
   }
@@ -228,10 +228,10 @@ export class ProxyCommand {
 
   private showHelp(): void {
     console.log(`
-${CLIUtils.colorize('mcpdog proxy', 'cyan')} - Connect to MCPDog daemon as MCP client proxy
+${CLIUtils.colorize('agentdog proxy', 'cyan')} - Connect to MCPDog daemon as MCP client proxy
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
-  mcpdog proxy [options]
+  agentdog proxy [options]
 
 ${CLIUtils.colorize('Options:', 'yellow')}
   --transport <type>    Transport protocol: stdio (default) or streamable-http
@@ -248,10 +248,10 @@ ${CLIUtils.colorize('Transport Types:', 'yellow')}
   streamable-http - HTTP-based transport with JSON-RPC over HTTP
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
-  mcpdog proxy                                    # Start with stdio transport
-  mcpdog proxy --transport streamable-http        # Start HTTP server on port 4000
-  mcpdog proxy --transport streamable-http --port 8080  # Start HTTP server on port 8080
-  mcpdog proxy --daemon-port 9999                # Use specific daemon port (stdio only)
+  agentdog proxy                                    # Start with stdio transport
+  agentdog proxy --transport streamable-http        # Start HTTP server on port 4000
+  agentdog proxy --transport streamable-http --port 8080  # Start HTTP server on port 8080
+  agentdog proxy --daemon-port 9999                # Use specific daemon port (stdio only)
 
 ${CLIUtils.colorize('MCP Client Configuration:', 'yellow')}
   
@@ -264,7 +264,7 @@ ${CLIUtils.colorize('MCP Client Configuration:', 'yellow')}
   }
   
   For streamable HTTP transport:
-  First start server manually: mcpdog --transport streamable-http --port 4000
+  First start server manually: agentdog --transport streamable-http --port 4000
   Then configure client:
   {
     "mcpServers": {

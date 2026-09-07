@@ -47,8 +47,8 @@ export class StartCommand {
 ❌ ${CLIUtils.colorize('MCPDog daemon is already running', 'red')}
 
 ${CLIUtils.colorize('Available actions:', 'yellow')}
-  mcpdog status    # Check current status
-  mcpdog stop      # Stop the daemon
+  agentdog status    # Check current status
+  agentdog stop      # Stop the daemon
 `);
         process.exit(1);
       }
@@ -231,18 +231,18 @@ ${CLIUtils.colorize('Common solutions:', 'yellow')}
      ls -la ${configPath}
      
   2. Create a default configuration:
-     mcpdog config init
+     agentdog config init
      
   3. Validate your configuration:
-     mcpdog config validate
+     agentdog config validate
      
   4. Check if port is already in use:
      lsof -i :${options['daemon-port'] || 9999}
 
 ${CLIUtils.colorize('Need help?', 'cyan')}
-  mcpdog --help          # Show all commands
-  mcpdog config --help   # Configuration help
-  mcpdog daemon --help   # Advanced daemon options
+  agentdog --help          # Show all commands
+  agentdog config --help   # Configuration help
+  agentdog daemon --help   # Advanced daemon options
 `);
     
     process.exit(1);
@@ -277,10 +277,10 @@ ${CLIUtils.colorize('Need help?', 'cyan')}
 
   private showHelp(): void {
     console.log(`
-${CLIUtils.colorize('mcpdog start', 'cyan')} - Start MCPDog daemon with all services
+${CLIUtils.colorize('agentdog start', 'cyan')} - Start MCPDog daemon with all services
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
-  mcpdog start [options]
+  agentdog start [options]
 
 ${CLIUtils.colorize('Options:', 'yellow')}
   -c, --config <path>        Configuration file path (default: ./mcpdog.config.json)
@@ -297,24 +297,24 @@ ${CLIUtils.colorize('Options:', 'yellow')}
   --help                     Show this help message
 
 ${CLIUtils.colorize('Default Behavior:', 'yellow')}
-  By default, 'mcpdog start' enables all services:
+  By default, 'agentdog start' enables all services:
   • Stdio Transport (for MCP clients)
   • HTTP Transport (for remote/web clients)  
   • Dashboard UI (for management)
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
-  mcpdog start                              # Start all services
-  mcpdog start --stdio-only                 # Only stdio + dashboard
-  mcpdog start --http-only                  # Only HTTP + dashboard
-  mcpdog start --no-dashboard               # All transports, no dashboard
-  mcpdog start --dashboard-port 3001        # Custom dashboard port
-  mcpdog start --mcp-http-port 4001         # Custom HTTP port
+  agentdog start                              # Start all services
+  agentdog start --stdio-only                 # Only stdio + dashboard
+  agentdog start --http-only                  # Only HTTP + dashboard
+  agentdog start --no-dashboard               # All transports, no dashboard
+  agentdog start --dashboard-port 3001        # Custom dashboard port
+  agentdog start --mcp-http-port 4001         # Custom HTTP port
 
 ${CLIUtils.colorize('After starting:', 'yellow')}
   • MCP Clients: Use 'npx mcpdog@latest' in client config
   • HTTP Clients: Connect to http://localhost:4000
   • Management: Visit http://localhost:61125
-  • Stop: mcpdog stop
+  • Stop: agentdog stop
 `);
   }
 }

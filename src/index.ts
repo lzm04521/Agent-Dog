@@ -167,10 +167,10 @@ Options:
 
 Examples:
   mcpdog                                    # Start with stdio transport
-  mcpdog --transport streamable-http        # Start with HTTP transport on default port
-  mcpdog --transport streamable-http --port 8080  # Start with HTTP transport on port 8080
-  mcpdog --config ./my-config.json         # Use custom config file
-  mcpdog --web-port 3000                   # Enable web interface (not yet implemented)
+  agentdog --transport streamable-http        # Start with HTTP transport on default port
+  agentdog --transport streamable-http --port 8080  # Start with HTTP transport on port 8080
+  agentdog --config ./my-config.json         # Use custom config file
+  agentdog --web-port 3000                   # Enable web interface (not yet implemented)
 
 Transport Types:
   stdio           - Standard input/output (default, for MCP clients like Claude Desktop)

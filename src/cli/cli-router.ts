@@ -99,7 +99,7 @@ export class CLICommandRouter {
             this.showCommandHelp(command);
           } else {
             CLIUtils.error(`Unknown command: ${command}`);
-            CLIUtils.info('Use mcpdog --help to see available commands');
+            CLIUtils.info('Use agentdog --help to see available commands');
             process.exit(1);
           }
       }
@@ -149,10 +149,10 @@ export class CLICommandRouter {
   private showCommandHelp(command: string) {
     const helpTexts: Record<string, string> = {
       serve: `
-${CLIUtils.colorize('mcpdog serve', 'cyan')} - Start MCP server
+${CLIUtils.colorize('agentdog serve', 'cyan')} - Start MCP server
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
-  mcpdog serve [options]
+  agentdog serve [options]
 
 ${CLIUtils.colorize('Options:', 'yellow')}
   --web-port <port>     Enable Web interface port (deprecated, use daemon mode)
@@ -160,15 +160,15 @@ ${CLIUtils.colorize('Options:', 'yellow')}
   -c, --config <path>   Configuration file path
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
-  mcpdog serve                    # Connect to daemon in stdio mode
-  mcpdog serve --daemon-port 9999 # Connect to daemon on specified port
+  agentdog serve                    # Connect to daemon in stdio mode
+  agentdog serve --daemon-port 9999 # Connect to daemon on specified port
 `,
 
       daemon: `
-${CLIUtils.colorize('mcpdog daemon', 'cyan')} - Daemon management
+${CLIUtils.colorize('agentdog daemon', 'cyan')} - Daemon management
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
-  mcpdog daemon <subcommand> [options]
+  agentdog daemon <subcommand> [options]
 
 ${CLIUtils.colorize('Subcommands:', 'yellow')}
   start                   Start daemon
@@ -183,22 +183,22 @@ ${CLIUtils.colorize('Start Options:', 'yellow')}
   --pid-file <path>       PID file path
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
-  mcpdog daemon start                    # Start daemon with auto-detected web port
-  mcpdog daemon start --web-port 61125    # Start daemon with specific web port
-  mcpdog daemon status                   # View status
-  mcpdog daemon reload                   # Reload config
-  mcpdog daemon restart                  # Restart daemon (stop then start)
-  mcpdog daemon stop                     # Stop daemon
+  agentdog daemon start                    # Start daemon with auto-detected web port
+  agentdog daemon start --web-port 61125    # Start daemon with specific web port
+  agentdog daemon status                   # View status
+  agentdog daemon reload                   # Reload config
+  agentdog daemon restart                  # Restart daemon (stop then start)
+  agentdog daemon stop                     # Stop daemon
 
 Note: starting a newer version while an older daemon is running will
 automatically stop the old one and start the new version (auto upgrade).
 `,
 
       config: `
-${CLIUtils.colorize('mcpdog config', 'cyan')} - Configuration management
+${CLIUtils.colorize('agentdog config', 'cyan')} - Configuration management
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
-  mcpdog config <subcommand> [options]
+  agentdog config <subcommand> [options]
 
 ${CLIUtils.colorize('Subcommands:', 'yellow')}
   list                    List all server configurations
@@ -216,16 +216,16 @@ ${CLIUtils.colorize('Options:', 'yellow')}
   --retries <num>        Set retries
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
-  mcpdog config list
-  mcpdog config add my-api https://api.example.com --auto-detect
-  mcpdog config remove old-server
+  agentdog config list
+  agentdog config add my-api https://api.example.com --auto-detect
+  agentdog config remove old-server
 `,
 
       detect: `
-${CLIUtils.colorize('mcpdog detect', 'cyan')} - Protocol detection
+${CLIUtils.colorize('agentdog detect', 'cyan')} - Protocol detection
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
-  mcpdog detect <server-name|endpoint> [options]
+  agentdog detect <server-name|endpoint> [options]
 
 ${CLIUtils.colorize('Options:', 'yellow')}
   --all                  Detect all servers
@@ -233,16 +233,16 @@ ${CLIUtils.colorize('Options:', 'yellow')}
   --detailed             Show detailed detection info
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
-  mcpdog detect my-server              # Detect existing server
-  mcpdog detect https://api.example.com # Detect new endpoint
-  mcpdog detect --all                  # Detect all servers
+  agentdog detect my-server              # Detect existing server
+  agentdog detect https://api.example.com # Detect new endpoint
+  agentdog detect --all                  # Detect all servers
 `,
 
       optimize: `
-${CLIUtils.colorize('mcpdog optimize', 'cyan')} - Performance optimization
+${CLIUtils.colorize('agentdog optimize', 'cyan')} - Performance optimization
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
-  mcpdog optimize [server-name] [options]
+  agentdog optimize [server-name] [options]
 
 ${CLIUtils.colorize('Options:', 'yellow')}
   --all                  Optimize all servers
@@ -250,15 +250,15 @@ ${CLIUtils.colorize('Options:', 'yellow')}
   --preview              Preview optimization results
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
-  mcpdog optimize my-server --apply
-  mcpdog optimize --all --preview
+  agentdog optimize my-server --apply
+  agentdog optimize --all --preview
 `,
 
       diagnose: `
-${CLIUtils.colorize('mcpdog diagnose', 'cyan')} - Diagnosis and repair
+${CLIUtils.colorize('agentdog diagnose', 'cyan')} - Diagnosis and repair
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
-  mcpdog diagnose [server-name] [options]
+  agentdog diagnose [server-name] [options]
 
 ${CLIUtils.colorize('Options:', 'yellow')}
   --all                  Diagnose all servers
@@ -266,15 +266,15 @@ ${CLIUtils.colorize('Options:', 'yellow')}
   --health-check         Perform health check
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
-  mcpdog diagnose problem-server --fix
-  mcpdog diagnose --all --health-check
+  agentdog diagnose problem-server --fix
+  agentdog diagnose --all --health-check
 `,
 
       audit: `
-${CLIUtils.colorize('mcpdog audit', 'cyan')} - Configuration audit
+${CLIUtils.colorize('agentdog audit', 'cyan')} - Configuration audit
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
-  mcpdog audit [options]
+  agentdog audit [options]
 
 ${CLIUtils.colorize('Options:', 'yellow')}
   --performance         Performance analysis
@@ -283,8 +283,8 @@ ${CLIUtils.colorize('Options:', 'yellow')}
   --export <format>     Export audit report
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
-  mcpdog audit --performance
-  mcpdog audit --security --export json
+  agentdog audit --performance
+  agentdog audit --security --export json
 `
     };
 

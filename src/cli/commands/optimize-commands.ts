@@ -19,7 +19,7 @@ export class OptimizeCommands {
     } else {
       const [serverName] = args;
       if (!serverName) {
-        CLIUtils.error('使用方法: mcpdog optimize <server-name> 或 mcpdog optimize --all');
+        CLIUtils.error('使用方法: agentdog optimize <server-name> 或 agentdog optimize --all');
         return;
       }
       await this.optimizeServer(serverName, options);
@@ -186,11 +186,11 @@ export class OptimizeCommands {
 
   private showHelp(): void {
     console.log(`
-${CLIUtils.colorize('mcpdog optimize', 'cyan')} - 性能优化
+${CLIUtils.colorize('agentdog optimize', 'cyan')} - 性能优化
 
 ${CLIUtils.colorize('使用方法:', 'yellow')}
-  mcpdog optimize <server-name> [options]
-  mcpdog optimize --all [options]
+  agentdog optimize <server-name> [options]
+  agentdog optimize --all [options]
 
 ${CLIUtils.colorize('选项:', 'yellow')}
   --all                  优化所有服务器
@@ -204,10 +204,10 @@ ${CLIUtils.colorize('优化内容:', 'yellow')}
   • 会话模式配置 (提升性能)
 
 ${CLIUtils.colorize('示例:', 'yellow')}
-  mcpdog optimize my-server                # 优化单个服务器
-  mcpdog optimize my-server --preview      # 预览优化建议
-  mcpdog optimize --all                    # 优化所有服务器
-  mcpdog optimize --all --apply            # 批量应用所有优化
+  agentdog optimize my-server                # 优化单个服务器
+  agentdog optimize my-server --preview      # 预览优化建议
+  agentdog optimize --all                    # 优化所有服务器
+  agentdog optimize --all --apply            # 批量应用所有优化
 `);
   }
 }

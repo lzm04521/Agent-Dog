@@ -19,7 +19,7 @@ export class DetectCommands {
     } else {
       const [target] = args;
       if (!target) {
-        CLIUtils.error('Usage: mcpdog detect <server-name|endpoint> or mcpdog detect --all');
+        CLIUtils.error('Usage: agentdog detect <server-name|endpoint> or agentdog detect --all');
         return;
       }
       await this.detectTarget(target, options);
@@ -313,11 +313,11 @@ export class DetectCommands {
 
   private showHelp(): void {
     console.log(`
-${CLIUtils.colorize('mcpdog detect', 'cyan')} - 协议检测
+${CLIUtils.colorize('agentdog detect', 'cyan')} - 协议检测
 
 ${CLIUtils.colorize('使用方法:', 'yellow')}
-  mcpdog detect <server-name|endpoint> [options]
-  mcpdog detect --all [options]
+  agentdog detect <server-name|endpoint> [options]
+  agentdog detect --all [options]
 
 ${CLIUtils.colorize('选项:', 'yellow')}
   --all                  检测所有配置的服务器
@@ -327,12 +327,12 @@ ${CLIUtils.colorize('选项:', 'yellow')}
   --yes                  自动确认所有操作
 
 ${CLIUtils.colorize('示例:', 'yellow')}
-  mcpdog detect my-server                      # 检测现有服务器
-  mcpdog detect https://api.example.com        # 检测新端点
-  mcpdog detect "node mcp-server.js"           # 检测stdio命令
-  mcpdog detect --all                          # 检测所有服务器
-  mcpdog detect --all --yes                    # 批量检测并自动更新
-  mcpdog detect new-api --detailed             # 详细检测信息
+  agentdog detect my-server                      # 检测现有服务器
+  agentdog detect https://api.example.com        # 检测新端点
+  agentdog detect "node mcp-server.js"           # 检测stdio命令
+  agentdog detect --all                          # 检测所有服务器
+  agentdog detect --all --yes                    # 批量检测并自动更新
+  agentdog detect new-api --detailed             # 详细检测信息
 
 ${CLIUtils.colorize('输出说明:', 'yellow')}
   置信度 90%+: 极高可信度，强烈建议使用

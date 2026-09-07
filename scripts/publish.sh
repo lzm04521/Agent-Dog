@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # MCPDog 发布脚本（团队维护版）
-# 发布 @lzm04521/mcpdog 到 npm
+# 发布 agentdog 到 npm
 
 set -e
 

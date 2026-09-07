@@ -143,7 +143,7 @@ export class ConfigCommands {
     console.log('addServer - options:', options);
 
     if (!name || !endpoint) {
-      CLIUtils.error('Usage: mcpdog config add <name> <endpoint> [options]');
+      CLIUtils.error('Usage: agentdog config add <name> <endpoint> [options]');
       return;
     }
 
@@ -256,7 +256,7 @@ export class ConfigCommands {
     const [name] = args;
 
     if (!name) {
-      CLIUtils.error('Usage: mcpdog config remove <name>');
+      CLIUtils.error('Usage: agentdog config remove <name>');
       return;
     }
 
@@ -289,7 +289,7 @@ export class ConfigCommands {
     const [name] = args;
 
     if (!name) {
-      CLIUtils.error('使用方法: mcpdog config update <name> [options]');
+      CLIUtils.error('使用方法: agentdog config update <name> [options]');
       return;
     }
 
@@ -334,7 +334,7 @@ export class ConfigCommands {
     const [name] = args;
 
     if (!name) {
-      CLIUtils.error('使用方法: mcpdog config show <name>');
+      CLIUtils.error('使用方法: agentdog config show <name>');
       return;
     }
 
@@ -371,7 +371,7 @@ export class ConfigCommands {
     const [name] = args;
 
     if (!name) {
-      CLIUtils.error('使用方法: mcpdog config enable <name>');
+      CLIUtils.error('使用方法: agentdog config enable <name>');
       return;
     }
 
@@ -388,7 +388,7 @@ export class ConfigCommands {
     const [name] = args;
 
     if (!name) {
-      CLIUtils.error('使用方法: mcpdog config disable <name>');
+      CLIUtils.error('使用方法: agentdog config disable <name>');
       return;
     }
 
@@ -446,7 +446,7 @@ export class ConfigCommands {
     
     if (enabledServers.length === 0) {
       CLIUtils.warning('没有启用的服务器配置');
-      CLIUtils.info('建议先添加服务器: mcpdog config add my-server https://api.example.com --auto-detect');
+      CLIUtils.info('建议先添加服务器: agentdog config add my-server https://api.example.com --auto-detect');
       console.log('');
     }
 
@@ -502,7 +502,7 @@ export class ConfigCommands {
     console.log('');
     
     console.log(`${CLIUtils.colorize('🚀 验证步骤:', 'cyan')}`);
-    console.log('  1. mcpdog diagnose --health-check');
+    console.log('  1. agentdog diagnose --health-check');
     console.log('  2. 在MCP客户端中测试连接');
     console.log('  3. 查看可用工具列表');
   }
@@ -558,7 +558,7 @@ ${CLIUtils.colorize('Step 1: Basic Configuration', 'yellow')}
     console.log(`
 ${CLIUtils.colorize('Step 2: MCP Servers', 'yellow')}
 
-Let's add some MCP servers. You can add more later using 'mcpdog config add'.
+Let's add some MCP servers. You can add more later using 'agentdog config add'.
 `);
 
     // 提供常用的MCP服务器模板
@@ -665,9 +665,9 @@ Let's add some MCP servers. You can add more later using 'mcpdog config add'.
 ${config.web.enabled ? `🌐 Web interface: ${CLIUtils.colorize(`http://localhost:${config.web.port}`, 'blue')}` : ''}
 
 ${CLIUtils.colorize('Next steps:', 'yellow')}
-  1. Start MCPDog: ${CLIUtils.colorize(`mcpdog start --config ${configPath}`, 'cyan')}
-  2. Configure MCP clients to use: ${CLIUtils.colorize('mcpdog proxy', 'cyan')}
-  3. Check status: ${CLIUtils.colorize('mcpdog status', 'cyan')}
+  1. Start MCPDog: ${CLIUtils.colorize(`agentdog start --config ${configPath}`, 'cyan')}
+  2. Configure MCP clients to use: ${CLIUtils.colorize('agentdog proxy', 'cyan')}
+  3. Check status: ${CLIUtils.colorize('agentdog status', 'cyan')}
 `);
       
     } catch (error) {
@@ -784,7 +784,7 @@ Validating configuration file: ${CLIUtils.colorize(configPath, 'yellow')}
         test: 'File exists and is readable',
         status: 'error',
         message: `Cannot read configuration file: ${err.message}`,
-        suggestion: 'Check file path and permissions, or run "mcpdog config init" to create a new configuration'
+        suggestion: 'Check file path and permissions, or run "agentdog config init" to create a new configuration'
       });
       this.displayValidationResults(validationResults);
       return;
@@ -882,7 +882,7 @@ ${CLIUtils.colorize('Summary:', 'cyan')}
         test: 'At least one server configured',
         status: 'warning',
         message: 'No MCP servers configured',
-        suggestion: 'Add at least one MCP server using "mcpdog config add" or "mcpdog config init"'
+        suggestion: 'Add at least one MCP server using "agentdog config add" or "agentdog config init"'
       });
       return;
     }
@@ -1031,7 +1031,7 @@ ${CLIUtils.colorize('Summary:', 'cyan')}
         test: 'Enabled servers',
         status: 'warning',
         message: 'No servers are enabled',
-        suggestion: 'Enable at least one server using "mcpdog config enable <server-name>"'
+        suggestion: 'Enable at least one server using "agentdog config enable <server-name>"'
       });
     }
 
@@ -1086,7 +1086,7 @@ ${CLIUtils.colorize('Summary:', 'cyan')}
 
   private showHelp(): void {
     console.log(`
-${CLIUtils.colorize('mcpdog config', 'cyan')} - 配置管理
+${CLIUtils.colorize('agentdog config', 'cyan')} - 配置管理
 
 ${CLIUtils.colorize('子命令:', 'yellow')}
   init                    Interactive configuration wizard
@@ -1117,13 +1117,13 @@ ${CLIUtils.colorize('update命令选项:', 'yellow')}
   --description <text>   更新描述信息
 
 ${CLIUtils.colorize('示例:', 'yellow')}
-  mcpdog config list
-  mcpdog config add my-api https://api.example.com --auto-detect
-  mcpdog config add stdio-server "node server.js" --transport stdio
-  mcpdog config show my-api
-  mcpdog config update my-api --timeout 60000
-  mcpdog config remove old-server
-  mcpdog config mcp-config                      # 生成MCP客户端配置
+  agentdog config list
+  agentdog config add my-api https://api.example.com --auto-detect
+  agentdog config add stdio-server "node server.js" --transport stdio
+  agentdog config show my-api
+  agentdog config update my-api --timeout 60000
+  agentdog config remove old-server
+  agentdog config mcp-config                      # 生成MCP客户端配置
 `);
   }
 }

@@ -308,8 +308,8 @@ ${CLIUtils.colorize('Possible issues:', 'yellow')}
   • Daemon overloaded
 
 ${CLIUtils.colorize('Try:', 'cyan')}
-  mcpdog start      # Start the daemon
-  mcpdog stop       # Stop and restart
+  agentdog start      # Start the daemon
+  agentdog stop       # Stop and restart
 `);
         client.disconnect();
         process.exit(1);
@@ -360,9 +360,9 @@ ${CLIUtils.colorize('MCP Servers:', 'cyan')}`);
 
     console.log(`
 ${CLIUtils.colorize('Management:', 'cyan')}
-  🌐 Web interface: Check with 'mcpdog start --web-port 61125'
-  🔄 Reload config: mcpdog daemon reload
-  🛑 Stop daemon: mcpdog stop
+  🌐 Web interface: Check with 'agentdog start --web-port 61125'
+  🔄 Reload config: agentdog daemon reload
+  🛑 Stop daemon: agentdog stop
 `);
   }
 
@@ -376,7 +376,7 @@ ${CLIUtils.colorize('Connection Details:', 'yellow')}
 
 ${CLIUtils.colorize('Possible Solutions:', 'yellow')}
   1. Start the daemon:
-     mcpdog start --config your-config.json
+     agentdog start --config your-config.json
 
   2. Check if daemon is running:
      ps aux | grep mcpdog
@@ -385,10 +385,10 @@ ${CLIUtils.colorize('Possible Solutions:', 'yellow')}
      lsof -i :${port}
 
   4. Use different port:
-     mcpdog status --daemon-port 9998
+     agentdog status --daemon-port 9998
 
 ${CLIUtils.colorize('Quick Start:', 'cyan')}
-  mcpdog start --config simple-config.json --web-port 61125
+  agentdog start --config simple-config.json --web-port 61125
 `);
     process.exit(1);
   }

@@ -467,10 +467,10 @@ ${results.recommendations.map((r: string, i: number) => `${i + 1}. ${r}`).join('
 
   private showHelp(): void {
     console.log(`
-${CLIUtils.colorize('mcpdog audit', 'cyan')} - Configuration audit
+${CLIUtils.colorize('agentdog audit', 'cyan')} - Configuration audit
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
-  mcpdog audit [options]
+  agentdog audit [options]
 
 ${CLIUtils.colorize('Audit Types:', 'yellow')}
   --performance         Performance audit (protocol optimization, timeout config, etc.)
@@ -482,11 +482,11 @@ ${CLIUtils.colorize('Options:', 'yellow')}
   --export <format>     Export audit report (json|txt)
 
 ${CLIUtils.colorize('Examples:', 'yellow')}
-  mcpdog audit                           # Full audit
-  mcpdog audit --performance             # Performance audit
-  mcpdog audit --security                # Security audit
-  mcpdog audit --compliance              # Compliance audit
-  mcpdog audit --export json             # Export JSON report
+  agentdog audit                           # Full audit
+  agentdog audit --performance             # Performance audit
+  agentdog audit --security                # Security audit
+  agentdog audit --compliance              # Compliance audit
+  agentdog audit --export json             # Export JSON report
 `);
   }
 }
