@@ -465,7 +465,7 @@ export class MCPDogDaemon extends EventEmitter {
   // Web server support (optional)
   async startWebServer(port: number): Promise<void> {
     const { DaemonWebServer } = await import('./daemon-web-server.js');
-    const webServer = new DaemonWebServer(this, port);
+    const webServer = new DaemonWebServer(this, port, this.configManager.getWebHost());
     await webServer.start();
     console.log(`[DAEMON] Web interface started on port ${port}`);
   }

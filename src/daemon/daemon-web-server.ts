@@ -19,17 +19,32 @@ import { createExpressAuthMiddleware } from '../middleware/auth.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// 校验监听地址：默认仅回环；对外开放必须配置 token，否则拒绝启动（安全基线，见设计文档 §5）
+export function resolveListenHost(host: string | undefined, hasAuthToken: boolean): string {
+  const resolved = host ?? 'localhost';
+  const isLoopback = resolved === 'localhost' || resolved === '127.0.0.1' || resolved === '::1';
+  if (!isLoopback && !hasAuthToken) {
+    throw new Error(
+      `Refusing to listen on "${resolved}" without MCPDOG_AUTH_TOKEN: ` +
+        `remote exposure requires a token. Set MCPDOG_AUTH_TOKEN or change web.host back to "localhost".`
+    );
+  }
+  return resolved;
+}
+
 export class DaemonWebServer {
   private app: express.Application;
   private server: any;
   private io: SocketIOServer;
   private daemon: MCPDogDaemon;
   private port: number;
+  private host?: string;
   private configManager: ConfigManager; // Add configManager property
 
-  constructor(daemon: MCPDogDaemon, port: number) {
+  constructor(daemon: MCPDogDaemon, port: number, host?: string) {
     this.daemon = daemon;
     this.port = port;
+    this.host = host;
     this.configManager = daemon.getConfigManager(); // Use daemon's configManager
     
     // Create Express application
@@ -1164,11 +1179,11 @@ export class DaemonWebServer {
 
   // Server control
   async start(): Promise<void> {
+    const host = resolveListenHost(this.host, Boolean(process.env.MCPDOG_AUTH_TOKEN));
     return new Promise((resolve, reject) => {
-      this.server.listen(this.port, () => {
-        console.log(`[DAEMON-WEB] Web interface started on port ${this.port}`);
-        console.log(`[DAEMON-WEB] Dashboard: http://localhost:${this.port}`);
-        console.log(`[DAEMON-WEB] WebSocket: ws://localhost:${this.port}`);
+      this.server.listen(this.port, host, () => {
+        console.log(`[DAEMON-WEB] Web interface started on http://${host}:${this.port}`);
+        console.log(`[DAEMON-WEB] WebSocket: ws://${host}:${this.port}`);
         resolve();
       });
       
