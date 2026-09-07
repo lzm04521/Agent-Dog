@@ -11,11 +11,14 @@ export class StdioProxy {
   private readline: any;
   private isReady = false;
 
-  constructor(daemonPort?: number) {
+  constructor(daemonPort?: number | string) {
+    // 兼容两种入参：Web 端口号（数字）或完整 baseUrl（字符串）
+    const baseUrl = typeof daemonPort === 'string'
+      ? daemonPort
+      : `http://localhost:${daemonPort ?? 61125}`;
     this.daemonClient = new DaemonClient({
-      port: daemonPort || 9999,
+      baseUrl,
       clientType: 'stdio',
-      reconnect: true,
       silent: true // Enable silent mode to avoid log pollution in stdio
     });
 
@@ -45,37 +48,11 @@ export class StdioProxy {
 
   private setupDaemonClient() {
     this.daemonClient.on('connected', () => {
-      // Connection established but handshake not completed yet, don't set as ready for now
-    });
-
-    this.daemonClient.on('disconnected', () => {
-      this.isReady = false;
-    });
-
-    this.daemonClient.on('error', (error) => {
-      // Only output to stderr for serious errors
-      if (!this.isReady) {
-        process.stderr.write(`MCPDog connection error: ${error.message}\n`);
-      }
-    });
-
-    this.daemonClient.on('welcome', (message) => {
-      // Set as ready immediately after receiving welcome message, because daemon is running
       this.isReady = true;
     });
 
-    this.daemonClient.on('ready', (serverStatus) => {
-      // Handshake completed, ensure ready status
+    this.daemonClient.on('ready', () => {
       this.isReady = true;
-    });
-
-    // Listen to daemon events, forward to MCP client
-    this.daemonClient.on('server-started', () => {
-      // Can send notifications to MCP client
-    });
-
-    this.daemonClient.on('routes-updated', (data) => {
-      // Tool routes updated, may need to send notifications
     });
   }
 
@@ -110,9 +87,22 @@ export class StdioProxy {
         return;
       }
 
-      // Forward MCP request to daemon (even if isReady is false, as long as connection exists)
-      const response = await this.daemonClient.sendMCPRequest(request);
-      
+      // Forward MCP request to daemon; on failure return a JSON-RPC error instead of hanging
+      let response;
+      try {
+        response = await this.daemonClient.sendMCPRequest(request);
+      } catch (error) {
+        this.sendStdioResponse({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32603,
+            message: `MCPDog daemon request failed: ${(error as Error).message}`
+          }
+        });
+        return;
+      }
+
       // Send response back to stdio
       this.sendStdioResponse(response);
       

@@ -281,14 +281,13 @@ export class DaemonCommands {
     
     try {
       const client = new DaemonClient({
-        port,
+        baseUrl: `http://localhost:${this.configManager.getWebPort() ?? 61125}`,
         clientType: 'cli',
-        reconnect: false,
         silent: true
       });
 
       await client.connect();
-      
+
       client.on('status', (status) => {
         this.displayFriendlyStatus(status, port);
         client.disconnect();
@@ -411,13 +410,13 @@ ${CLIUtils.colorize('Quick Start:', 'cyan')}
     
     try {
       const client = new DaemonClient({
-        port,
+        baseUrl: `http://localhost:${this.configManager.getWebPort() ?? 61125}`,
         clientType: 'cli',
-        reconnect: false
+        silent: true
       });
 
       await client.connect();
-      
+
       client.reloadConfig();
               CLIUtils.success('Configuration reload request sent');
       

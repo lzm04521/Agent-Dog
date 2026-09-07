@@ -1,243 +1,150 @@
 /**
- * MCPDog Daemon Client
- * Used to connect to the daemon and communicate
+ * MCPDog Daemon Client（HTTP 版）
+ * daemon IPC 已与 Web 端口合并（doc/20260907-设计文档-daemon-IPC与Web端口合并.md）：
+ * 探活走 GET /api/status，MCP 转发走 POST /api/mcp，clientId 由 X-MCPDog-Client 头携带。
  */
 
 import { EventEmitter } from 'events';
-import { Socket } from 'net';
+import { randomUUID } from 'crypto';
 
 export interface DaemonClientConfig {
-  host?: string;
-  port?: number;
+  baseUrl: string;                        // 如 http://localhost:61125
   clientType: 'stdio' | 'web' | 'cli';
-  reconnect?: boolean;
-  reconnectInterval?: number;
-  silent?: boolean; // Silent mode, no log output
+  token?: string;                         // 对应 daemon 的 MCPDOG_AUTH_TOKEN
+  silent?: boolean;                       // 静默模式，不输出日志
+  requestTimeoutMs?: number;              // 单请求超时，默认 120000
+  connectAttempts?: number;               // connect 探活尝试次数，默认 10
+  connectIntervalMs?: number;             // 探活间隔，默认 1000
+  retryDelayMs?: number;                  // 请求失败重试前等待，默认 500
 }
 
 export class DaemonClient extends EventEmitter {
-  private socket: Socket;
-  private config: DaemonClientConfig;
+  private config: DaemonClientConfig & Required<Pick<DaemonClientConfig,
+    'requestTimeoutMs' | 'connectAttempts' | 'connectIntervalMs' | 'retryDelayMs'>>;
   private isConnected = false;
-  private reconnectTimer?: NodeJS.Timeout;
-  private requestCounter = 0;
-  private pendingRequests = new Map<string, (response: any) => void>();
-  private recvBuffer = '';
+  private readonly clientId: string;
 
   constructor(config: DaemonClientConfig) {
     super();
     this.config = {
-      host: 'localhost',
-      port: 9999,
-      reconnect: true,
-      reconnectInterval: 5000,
+      requestTimeoutMs: 120000,
+      connectAttempts: 10,
+      connectIntervalMs: 1000,
+      retryDelayMs: 500,
       ...config
     };
-    this.socket = new Socket();
-    this.setupSocket();
+    // token 缺省回退到环境变量：daemon 一旦设置 MCPDOG_AUTH_TOKEN，auth 中间件对所有 /api/*（含
+    // /api/mcp、/api/status）强制 Bearer，且无 loopback 豁免（src/middleware/auth.ts:43-101）。本机
+    // proxy/CLI 与 daemon 共享 env（auto-start 经 spawn 继承 process.env），缺省带上可避免
+    // "设了 token 后本机 proxy/CLI 全部 401" 的合并回归（旧 IPC 9999 无鉴权）。
+    if (!this.config.token && process.env.MCPDOG_AUTH_TOKEN) {
+      this.config.token = process.env.MCPDOG_AUTH_TOKEN;
+    }
+    this.clientId = `client_${randomUUID().slice(0, 8)}`;
   }
 
-  private setupSocket() {
-    this.socket.on('connect', () => {
-      if (!this.config.silent) {
-        console.log('[DAEMON-CLIENT] Connected to daemon');
-      }
-      this.isConnected = true;
-      this.clearReconnectTimer();
-      
-      // Send handshake message
-      this.send({
-        type: 'handshake',
-        clientType: this.config.clientType
+  getClientId(): string {
+    return this.clientId;
+  }
+
+  private buildHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'X-MCPDog-Client': this.clientId
+    };
+    if (this.config.token) {
+      headers['Authorization'] = `Bearer ${this.config.token}`;
+    }
+    return headers;
+  }
+
+  // 探活一次（不重试）
+  private async probeOnce(): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.config.baseUrl}/api/status`, {
+        headers: this.buildHeaders(),
+        signal: AbortSignal.timeout(5000)
       });
-      
-      this.emit('connected');
-    });
-
-    this.socket.on('data', (data) => {
-      // TCP 分片缓冲：单条 JSON 消息可能超过单个 TCP chunk（约 64KB，如聚合全部工具后的
-      // tools/list 响应），被拆到多个 data 事件；必须跨 chunk 拼接后再按行切分，
-      // 否则大响应永远解析失败，且 silent 模式下错误被吞、请求方一直等到超时
-      this.recvBuffer += data.toString();
-      let newlineIndex: number;
-      while ((newlineIndex = this.recvBuffer.indexOf('\n')) >= 0) {
-        const line = this.recvBuffer.slice(0, newlineIndex).trim();
-        this.recvBuffer = this.recvBuffer.slice(newlineIndex + 1);
-        if (!line) continue;
-
-        try {
-          const message = JSON.parse(line);
-          this.handleMessage(message);
-        } catch (error) {
-          if (!this.config.silent) {
-            console.error('[DAEMON-CLIENT] Invalid message:', error);
-          }
-        }
-      }
-    });
-
-    this.socket.on('close', () => {
-      if (!this.config.silent) {
-        console.log('[DAEMON-CLIENT] Disconnected from daemon');
-      }
-      this.isConnected = false;
-      this.emit('disconnected');
-      
-      if (this.config.reconnect) {
-        this.scheduleReconnect();
-      }
-    });
-
-    this.socket.on('error', (error) => {
-      if (!this.config.silent) {
-        console.error('[DAEMON-CLIENT] Socket error:', error);
-      }
-      this.emit('error', error);
-    });
-  }
-
-  private handleMessage(message: any) {
-    switch (message.type) {
-      case 'welcome':
-        if (!this.config.silent) {
-          console.log(`[DAEMON-CLIENT] Welcome, client ID: ${message.clientId}`);
-        }
-        this.emit('welcome', message);
-        break;
-
-      case 'handshake-ack':
-        if (!this.config.silent) {
-          console.log('[DAEMON-CLIENT] Handshake acknowledged');
-        }
-        this.emit('ready', message.serverStatus);
-        break;
-
-      case 'mcp-response':
-        // MCP request response
-        const responseCallback = this.pendingRequests.get(message.requestId);
-        if (responseCallback) {
-          responseCallback(message.response);
-          this.pendingRequests.delete(message.requestId);
-        }
-        break;
-
-      case 'mcp-error':
-        // MCP request error
-        const errorCallback = this.pendingRequests.get(message.requestId);
-        if (errorCallback) {
-          errorCallback({ error: message.error });
-          this.pendingRequests.delete(message.requestId);
-        }
-        break;
-
-      case 'server-started':
-      case 'server-stopped':
-      case 'routes-updated':
-      case 'tool-called':
-      case 'config-changed':
-        // Forward events
-        this.emit(message.type, message.data);
-        break;
-
-      case 'status':
-        this.emit('status', message.status);
-        break;
-
-      case 'tools':
-        this.emit('tools', message.tools);
-        break;
-
-      default:
-        if (!this.config.silent) {
-          console.warn('[DAEMON-CLIENT] Unknown message type:', message.type);
-        }
+      return res.ok;
+    } catch {
+      return false;
     }
   }
 
-  private send(message: any) {
-    if (this.isConnected) {
-      this.socket.write(JSON.stringify(message) + '\n');
-    } else {
-      if (!this.config.silent) {
-        console.error('[DAEMON-CLIENT] Cannot send message, not connected');
-      }
-    }
-  }
-
-  private scheduleReconnect() {
-    if (this.reconnectTimer) return;
-    
-    if (!this.config.silent) {
-      console.log(`[DAEMON-CLIENT] Scheduling reconnect in ${this.config.reconnectInterval}ms`);
-    }
-    this.reconnectTimer = setTimeout(() => {
-      if (!this.config.silent) {
-        console.log('[DAEMON-CLIENT] Attempting to reconnect...');
-      }
-      this.connect();
-    }, this.config.reconnectInterval);
-  }
-
-  private clearReconnectTimer() {
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = undefined;
-    }
-  }
-
-  // Public API
+  // Public API —— 探活重试直到 daemon 就绪（替代原 TCP welcome 语义）
   async connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const onConnect = () => {
-        this.off('error', onError);
-        resolve();
-      };
+    for (let i = 0; i < this.config.connectAttempts; i++) {
+      if (await this.probeOnce()) {
+        this.isConnected = true;
+        if (!this.config.silent) {
+          console.log(`[DAEMON-CLIENT] Daemon ready at ${this.config.baseUrl} (client ${this.clientId})`);
+        }
+        this.emit('connected');
+        this.emit('ready');
+        return;
+      }
+      if (i < this.config.connectAttempts - 1) {
+        await new Promise((r) => setTimeout(r, this.config.connectIntervalMs));
+      }
+    }
+    throw new Error(`Daemon not reachable at ${this.config.baseUrl} (tried ${this.config.connectAttempts} times)`);
+  }
 
-      const onError = (error: Error) => {
-        this.off('connected', onConnect);
-        reject(error);
-      };
+  disconnect(): void {
+    this.isConnected = false;
+  }
 
-      this.once('connected', onConnect);
-      this.once('error', onError);
-
-      this.socket.connect(this.config.port!, this.config.host!);
+  private async postJson(path: string, body: unknown): Promise<any> {
+    const res = await fetch(`${this.config.baseUrl}${path}`, {
+      method: 'POST',
+      headers: this.buildHeaders(),
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(this.config.requestTimeoutMs)
     });
+    if (!res.ok) {
+      throw new Error(`daemon HTTP ${res.status} on ${path}`);
+    }
+    return res.json();
   }
 
-  disconnect() {
-    this.config.reconnect = false;
-    this.clearReconnectTimer();
-    this.socket.end();
-  }
-
-  // MCP protocol forwarding
+  // MCP protocol forwarding —— 失败先探活，daemon 可达则重试一次
+  // （替代原 socket reconnect 的 daemon 重启自愈语义）
   async sendMCPRequest(request: any): Promise<any> {
-    return new Promise((resolve) => {
-      const requestId = `req_${++this.requestCounter}`;
-      this.pendingRequests.set(requestId, resolve);
-      
-      this.send({
-        type: 'mcp-request',
-        requestId,
-        request
-      });
+    try {
+      return await this.postJson('/api/mcp', request);
+    } catch (error) {
+      await new Promise((r) => setTimeout(r, this.config.retryDelayMs));
+      if (await this.probeOnce()) {
+        return await this.postJson('/api/mcp', request);
+      }
+      throw error;
+    }
+  }
+
+  async getStatus(): Promise<any> {
+    const res = await fetch(`${this.config.baseUrl}/api/status`, {
+      headers: this.buildHeaders(),
+      signal: AbortSignal.timeout(this.config.requestTimeoutMs)
     });
+    if (!res.ok) {
+      throw new Error(`daemon HTTP ${res.status} on /api/status`);
+    }
+    return res.json();
   }
 
-  // Get status
-  getStatus(): void {
-    this.send({ type: 'get-status' });
+  async getTools(): Promise<any> {
+    const res = await fetch(`${this.config.baseUrl}/api/tools`, {
+      headers: this.buildHeaders(),
+      signal: AbortSignal.timeout(this.config.requestTimeoutMs)
+    });
+    if (!res.ok) {
+      throw new Error(`daemon HTTP ${res.status} on /api/tools`);
+    }
+    return res.json();
   }
 
-  // Get tools list
-  getTools(): void {
-    this.send({ type: 'get-tools' });
-  }
-
-  // Reload configuration
-  reloadConfig(): void {
-    this.send({ type: 'reload-config' });
+  async reloadConfig(): Promise<any> {
+    return this.postJson('/api/daemon/reload', {});
   }
 
   get connected(): boolean {
