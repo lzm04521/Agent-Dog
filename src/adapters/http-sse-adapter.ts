@@ -266,7 +266,7 @@ export class HttpSseAdapter extends EventEmitter implements ServerAdapter {
           tools: {}
         },
         clientInfo: {
-          name: 'mcpdog',
+          name: 'agentdog',
           version: '2.0.0'
         }
       }

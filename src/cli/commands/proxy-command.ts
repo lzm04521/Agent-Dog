@@ -13,18 +13,18 @@ import path from 'path';
 import os from 'os';
 
 export class ProxyCommand {
-  private mcpdogDir: string;
+  private agentdogDir: string;
 
   constructor(private configManager: ConfigManager) {
-    // Use ~/.mcpdog directory for PID files
-    this.mcpdogDir = path.join(os.homedir(), '.mcpdog');
+    // Use ~/.agentdog directory for PID files
+    this.agentdogDir = path.join(os.homedir(), '.agentdog');
   }
 
   /**
-   * Get default PID file path in ~/.mcpdog directory
+   * Get default PID file path in ~/.agentdog directory
    */
   private getDefaultPidFile(): string {
-    return path.join(this.mcpdogDir, 'mcpdog.pid');
+    return path.join(this.agentdogDir, 'agentdog.pid');
   }
 
   async execute(args: string[], options: Record<string, any>): Promise<void> {
@@ -48,7 +48,7 @@ export class ProxyCommand {
   private async startStdioMode(options: Record<string, any>): Promise<void> {
     if (options['daemon-port']) {
       process.stderr.write(
-        'MCPDog: --daemon-port has been removed. The daemon now shares the Web port; ' +
+        'AgentDog: --daemon-port has been removed. The daemon now shares the Web port; ' +
         'remove the --daemon-port argument from your MCP client config ' +
         '(daemon address: http://localhost:<web.port>, default 61125).\n'
       );
@@ -82,7 +82,7 @@ export class ProxyCommand {
       await new Promise(() => {}); // Wait forever
 
     } catch (error) {
-      process.stderr.write(`MCPDog: Failed to connect to daemon (web port from config)\n`);
+      process.stderr.write(`AgentDog: Failed to connect to daemon (web port from config)\n`);
       process.stderr.write(`Please ensure daemon is running: agentdog daemon start\n`);
       process.exit(1);
     }
@@ -119,7 +119,7 @@ export class ProxyCommand {
     } catch (error) {
       // Only output error on connection failure, then exit immediately
       // Use process.stderr.write instead of CLIUtils to avoid color codes
-      process.stderr.write(`MCPDog: Failed to start HTTP server on port ${httpPort}\n`);
+      process.stderr.write(`AgentDog: Failed to start HTTP server on port ${httpPort}\n`);
       process.stderr.write(`Error: ${(error as Error).message}\n`);
       process.exit(1);
     }
@@ -149,12 +149,12 @@ export class ProxyCommand {
    */
   private async autoStartDaemonSilent(pidFile: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const mcpdogPath = process.argv[0]; // node executable path
+      const agentdogPath = process.argv[0]; // node executable path
       const scriptPath = process.argv[1]; // path to cli-main.js
       const configPath = this.configManager.getConfigPath();
 
       // Use --no-color and --json flags to suppress all output
-      const daemon = spawn(mcpdogPath, [
+      const daemon = spawn(agentdogPath, [
         scriptPath, 'daemon', 'start',
         '--config', configPath,
         '--pid-file', pidFile,
@@ -186,7 +186,7 @@ export class ProxyCommand {
 
   private showHelp(): void {
     console.log(`
-${CLIUtils.colorize('agentdog proxy', 'cyan')} - Connect to MCPDog daemon as MCP client proxy
+${CLIUtils.colorize('agentdog proxy', 'cyan')} - Connect to AgentDog daemon as MCP client proxy
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
   agentdog proxy [options]
@@ -197,7 +197,7 @@ ${CLIUtils.colorize('Options:', 'yellow')}
   --help               Show this help message
 
 ${CLIUtils.colorize('Description:', 'yellow')}
-  This command starts MCPDog and acts as a proxy for MCP clients. It supports
+  This command starts AgentDog and acts as a proxy for MCP clients. It supports
   both stdio (for traditional MCP clients) and HTTP (for web-based clients).
 
 ${CLIUtils.colorize('Transport Types:', 'yellow')}
@@ -213,8 +213,8 @@ ${CLIUtils.colorize('MCP Client Configuration:', 'yellow')}
   
   For stdio transport (Claude Desktop, Cursor):
   {
-    "mcpdog": {
-      "command": "mcpdog",
+    "agentdog": {
+      "command": "agentdog",
       "args": ["proxy"]
     }
   }
@@ -224,7 +224,7 @@ ${CLIUtils.colorize('MCP Client Configuration:', 'yellow')}
   Then configure client:
   {
     "mcpServers": {
-      "mcpdog-http": {
+      "agentdog-http": {
         "type": "streamable-http",
         "url": "http://localhost:4000"
       }

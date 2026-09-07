@@ -70,10 +70,10 @@ describe('DaemonWebServer 监听', () => {
     expect(status.daemon.isRunning).toBe(true);
   });
 
-  it('POST /api/mcp 转发 MCP 请求并把 X-MCPDog-Client 作为 clientId', async () => {
+  it('POST /api/mcp 转发 MCP 请求并把 X-AgentDog-Client 作为 clientId', async () => {
     const res = await fetch(`${baseUrl}/api/mcp`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-MCPDog-Client': 'client_test_1' },
+      headers: { 'Content-Type': 'application/json', 'X-AgentDog-Client': 'client_test_1' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 7, method: 'tools/list', params: {} })
     });
     expect(res.status).toBe(200);

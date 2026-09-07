@@ -49,7 +49,7 @@ export class MockToolDatabase {
             description: "Send single email",
             exampleParams: {
               to: "user@example.com",
-              subject: "Hello from MCPDog!",
+              subject: "Hello from AgentDog!",
               body: "This is a test email",
               html: false
             }

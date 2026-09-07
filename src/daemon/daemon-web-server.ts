@@ -10,7 +10,7 @@ import cors from 'cors';
 import path from 'path';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { MCPDogDaemon } from './mcpdog-daemon.js';
+import { AgentDogDaemon } from './agentdog-daemon.js';
 import { ConfigManager } from '../config/config-manager.js';
 import { globalLogManager } from '../logging/server-log-manager.js';
 import { ServerNameValidator } from '../utils/server-name-validator.js';
@@ -40,12 +40,12 @@ export class DaemonWebServer {
   private app: express.Application;
   private server: any;
   private io: SocketIOServer;
-  private daemon: MCPDogDaemon;
+  private daemon: AgentDogDaemon;
   private port: number;
   private host?: string;
   private configManager: ConfigManager; // Add configManager property
 
-  constructor(daemon: MCPDogDaemon, port: number, host?: string) {
+  constructor(daemon: AgentDogDaemon, port: number, host?: string) {
     this.daemon = daemon;
     this.port = port;
     this.host = host;
@@ -411,7 +411,7 @@ export class DaemonWebServer {
           request.jsonrpc !== '2.0' || typeof request.method !== 'string') {
         return res.status(400).json({ error: 'Invalid MCP request: expect a JSON-RPC 2.0 object with method' });
       }
-      const clientId = (req.headers['x-mcpdog-client'] as string) || 'http-anonymous';
+      const clientId = (req.headers['x-agentdog-client'] as string) || 'http-anonymous';
       const daemon: any = this.daemon;
       daemon.recordClientActivity(clientId, 'stdio');
       const response = await daemon.mcpServer.handleRequest(request, clientId);
@@ -1079,7 +1079,7 @@ export class DaemonWebServer {
       console.log(`[DAEMON-WEB] Server ${name} toggled: ${oldEnabled} -> ${!oldEnabled}`);
       
       // ConfigManager's toggleServer method emits a server-toggled event
-      // MCPDogServer already listens to this event and automatically handles server start/stop
+      // AgentDogServer already listens to this event and automatically handles server start/stop
       // No need to manually call reloadConfig() or manually connect/disconnect servers
       
       // Send composite event, including toggle operation and latest status

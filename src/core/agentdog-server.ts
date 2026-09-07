@@ -11,7 +11,7 @@ import {
   MCPServerConfig 
 } from '../types/index.js';
 
-export class MCPDogServer extends EventEmitter {
+export class AgentDogServer extends EventEmitter {
   private configManager: ConfigManager;
   private toolRouter: ToolRouter;
   private clientCapabilities?: ClientCapabilities;
@@ -22,7 +22,7 @@ export class MCPDogServer extends EventEmitter {
   constructor(configManager: ConfigManager) {
     super();
     
-    console.error(`[SERVER] Creating MCPDogServer instance (PID: ${process.pid})`);
+    console.error(`[SERVER] Creating AgentDogServer instance (PID: ${process.pid})`);
     
     this.configManager = configManager;
     this.toolRouter = new ToolRouter(this.configManager);
@@ -111,17 +111,17 @@ export class MCPDogServer extends EventEmitter {
 
   async start(): Promise<void> {
     if (this.isStarted) {
-      console.error(`[SERVER] MCPDog Server already started, ignoring duplicate start() call`);
+      console.error(`[SERVER] AgentDog Server already started, ignoring duplicate start() call`);
       return;
     }
     
     try {
-      console.error(`[SERVER] Starting MCPDog Server... (PID: ${process.pid})`);
+      console.error(`[SERVER] Starting AgentDog Server... (PID: ${process.pid})`);
       this.isStarted = true;
       
       // Load config
       await this.configManager.loadConfig();
-      console.error(`[SERVER] Config loaded in MCPDogServer: ${JSON.stringify(this.configManager.getConfig().servers)}`);
+      console.error(`[SERVER] Config loaded in AgentDogServer: ${JSON.stringify(this.configManager.getConfig().servers)}`);
       
       // Start watching config file changes
       this.configManager.startWatching();
@@ -129,19 +129,19 @@ export class MCPDogServer extends EventEmitter {
       // Initialize adapters
       await this.initializeAdapters();
       
-      console.error(`[SERVER] MCPDog Server started successfully (PID: ${process.pid})`);
+      console.error(`[SERVER] AgentDog Server started successfully (PID: ${process.pid})`);
       this.emit('started');
       
     } catch (error) {
       this.isStarted = false; // Reset status, allow retry
-      console.error('Failed to start MCPDog Server:', error);
+      console.error('Failed to start AgentDog Server:', error);
       throw error;
     }
   }
 
   async stop(): Promise<void> {
     try {
-      console.error('Stopping MCPDog Server...');
+      console.error('Stopping AgentDog Server...');
       
       // Stop config watching
       this.configManager.stopWatching();
@@ -153,11 +153,11 @@ export class MCPDogServer extends EventEmitter {
       this.isInitialized = false;
       this.clientCapabilities = undefined;
       
-      console.error('MCPDog Server stopped');
+      console.error('AgentDog Server stopped');
       this.emit('stopped');
       
     } catch (error) {
-      console.error('Error stopping MCPDog Server:', error);
+      console.error('Error stopping AgentDog Server:', error);
       throw error;
     }
   }
@@ -425,7 +425,7 @@ export class MCPDogServer extends EventEmitter {
           }
         },
         serverInfo: {
-          name: 'mcpdog',
+          name: 'agentdog',
           version: '2.0.0'
         }
       }
@@ -595,7 +595,7 @@ export class MCPDogServer extends EventEmitter {
   }
 
   private async handleResourcesList(request: MCPRequest): Promise<MCPResponse> {
-    // MCPDog currently does not provide resources, return empty list for Cursor compatibility
+    // AgentDog currently does not provide resources, return empty list for Cursor compatibility
     return {
       jsonrpc: '2.0',
       id: request.id,
@@ -606,7 +606,7 @@ export class MCPDogServer extends EventEmitter {
   }
 
   private async handlePromptsList(request: MCPRequest): Promise<MCPResponse> {
-    // MCPDog currently does not provide prompt templates, return empty list for Cursor compatibility
+    // AgentDog currently does not provide prompt templates, return empty list for Cursor compatibility
     return {
       jsonrpc: '2.0',
       id: request.id,

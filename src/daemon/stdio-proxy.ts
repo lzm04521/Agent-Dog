@@ -81,7 +81,7 @@ export class StdioProxy {
           id: request.id,
           error: {
             code: -32603,
-            message: "MCPDog daemon not connected"
+            message: "AgentDog daemon not connected"
           }
         });
         return;
@@ -97,7 +97,7 @@ export class StdioProxy {
           id: request.id,
           error: {
             code: -32603,
-            message: `MCPDog daemon request failed: ${(error as Error).message}`
+            message: `AgentDog daemon request failed: ${(error as Error).message}`
           }
         });
         return;
@@ -143,7 +143,7 @@ export class StdioProxy {
       await this.daemonClient.connect();
       // After successful connection, start processing MCP requests
     } catch (error) {
-      process.stderr.write(`MCPDog failed to connect to daemon: ${(error as Error).message}\n`);
+      process.stderr.write(`AgentDog failed to connect to daemon: ${(error as Error).message}\n`);
       process.exit(1);
     }
   }

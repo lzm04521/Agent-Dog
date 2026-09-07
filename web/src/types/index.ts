@@ -67,18 +67,19 @@ export interface ToolInfo {
   annotations?: any;
 }
 
+// socket status-update 实际载荷（daemon getFullStatus + web-server 附加统计字段）
 export interface SystemStatus {
-  initialized: boolean;
-  client?: {
-    supportsNotifications: boolean;
-    clientName: string;
-    clientVersion: string;
+  daemon?: {
+    isRunning?: boolean;
+    clients?: Array<{ id: string; type: string; lastSeen?: string }>;
+    uptime?: number; // 秒
   };
+  mcpServer?: any;
+  total?: number;
+  connected?: number;
+  totalTools?: number;
+  enabledTools?: number;
   servers: ServerStatus[];
-  totalTools: number;
-  enabledTools: number;
-  uptime: number;
-  timestamp: string;
 }
 
 export interface RealtimeEvent {

@@ -8,7 +8,7 @@ class APIClient {
   }
 
   private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('mcpdog_token');
+    const token = localStorage.getItem('agentdog_token');
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
@@ -24,7 +24,7 @@ class APIClient {
     if (response.status === 401) {
       // Token is invalid or missing, clear it but don't redirect
       // Let the React app handle the authentication state
-      localStorage.removeItem('mcpdog_token');
+      localStorage.removeItem('agentdog_token');
       throw new Error('需要身份验证');
     }
 
@@ -76,17 +76,17 @@ class APIClient {
 
   // Check if user is authenticated
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('mcpdog_token');
+    return !!localStorage.getItem('agentdog_token');
   }
 
   // Get the stored token
   getToken(): string | null {
-    return localStorage.getItem('mcpdog_token');
+    return localStorage.getItem('agentdog_token');
   }
 
   // Clear authentication
   logout(): void {
-    localStorage.removeItem('mcpdog_token');
+    localStorage.removeItem('agentdog_token');
     window.location.reload();
   }
 
@@ -120,7 +120,7 @@ class APIClient {
     }
 
     // Store the token on successful login
-    localStorage.setItem('mcpdog_token', token);
+    localStorage.setItem('agentdog_token', token);
   }
 
   // ===== AI 网关与供应商 =====

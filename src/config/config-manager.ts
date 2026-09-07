@@ -3,14 +3,14 @@ import * as fsSync from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 import { EventEmitter } from 'events';
-import { MCPDogConfig, MCPServerConfig, AIProviderConfig, AIGatewayConfig } from '../types/index.js';
+import { AgentDogConfig, MCPServerConfig, AIProviderConfig, AIGatewayConfig } from '../types/index.js';
 import { AdapterFactory } from '../adapters/adapter-factory.js';
 import { AutoConfigGenerator, ConfigSuggestion } from '../core/auto-config-generator.js';
 import { ProtocolDetector } from '../core/protocol-detector.js';
 import { ServerNameValidator } from '../utils/server-name-validator.js';
 
 export class ConfigManager extends EventEmitter {
-  private config: MCPDogConfig;
+  private config: AgentDogConfig;
   private configPath: string;
   private autoCreateConfig: boolean;
   private watchAbortController?: AbortController;
@@ -35,12 +35,12 @@ export class ConfigManager extends EventEmitter {
 
   /**
    * Get the default configuration file path
-   * Always use user home directory ~/.mcpdog/mcpdog.config.json
+   * Always use user home directory ~/.agentdog/agentdog.config.json
    */
   private getDefaultConfigPath(): string {
     // Use user home directory for global config
-    const userConfigDir = join(homedir(), '.mcpdog');
-    const userConfigPath = join(userConfigDir, 'mcpdog.config.json');
+    const userConfigDir = join(homedir(), '.agentdog');
+    const userConfigPath = join(userConfigDir, 'agentdog.config.json');
     
     // Ensure the config directory exists
     try {
@@ -48,7 +48,17 @@ export class ConfigManager extends EventEmitter {
     } catch (error) {
       // Directory might already exist, ignore error
     }
-    
+
+    // 更名前旧路径迁移：新配置不存在而旧 ~/.mcpdog/mcpdog.config.json 存在时，复制到新路径（旧文件保留）
+    const legacyConfigPath = join(homedir(), '.mcpdog', 'mcpdog.config.json');
+    try {
+      if (!fsSync.existsSync(userConfigPath) && fsSync.existsSync(legacyConfigPath)) {
+        fsSync.copyFileSync(legacyConfigPath, userConfigPath);
+      }
+    } catch {
+      // 迁移失败时回落到首次启动默认配置，不阻塞启动
+    }
+
     return userConfigPath;
   }
 
@@ -81,7 +91,7 @@ export class ConfigManager extends EventEmitter {
     }
   }
 
-  private getDefaultConfig(): MCPDogConfig {
+  private getDefaultConfig(): AgentDogConfig {
     return {
       servers: {},
       version: '2.0.0',
@@ -239,11 +249,11 @@ export class ConfigManager extends EventEmitter {
     await this.saveConfig();
   }
 
-  getConfig(): MCPDogConfig {
+  getConfig(): AgentDogConfig {
     return this.config;
   }
 
-  setConfig(config: MCPDogConfig): void {
+  setConfig(config: AgentDogConfig): void {
     this.config = config;
   }
 
@@ -280,7 +290,7 @@ export class ConfigManager extends EventEmitter {
   toggleServer(name: string, enabled: boolean): boolean {
     if (this.config.servers[name]) {
       this.config.servers[name].enabled = enabled;
-      // Emit server-toggled event so MCPDogServer can handle connection/disconnection
+      // Emit server-toggled event so AgentDogServer can handle connection/disconnection
       this.emit('server-toggled', { name, enabled });
       return true;
     }
@@ -470,7 +480,7 @@ export class ConfigManager extends EventEmitter {
   /**
    * Validate configuration structure
    */
-  validateConfig(config?: MCPDogConfig): { valid: boolean; errors: string[] } {
+  validateConfig(config?: AgentDogConfig): { valid: boolean; errors: string[] } {
     const configToValidate = config || this.config;
     const errors: string[] = [];
 
@@ -592,7 +602,7 @@ export class ConfigManager extends EventEmitter {
   }
 
   // Legacy compatibility methods
-  generateAutoConfig(): Promise<MCPDogConfig[]> {
+  generateAutoConfig(): Promise<AgentDogConfig[]> {
     return Promise.resolve([this.config]);
   }
 
@@ -611,8 +621,8 @@ export class ConfigManager extends EventEmitter {
     return suggestions;
   }
 
-  // Legacy method that returns MCPDogConfig[] for compatibility
-  generateConfigSuggestions(): Promise<MCPDogConfig[]> {
+  // Legacy method that returns AgentDogConfig[] for compatibility
+  generateConfigSuggestions(): Promise<AgentDogConfig[]> {
     return this.generateAutoConfig();
   }
 

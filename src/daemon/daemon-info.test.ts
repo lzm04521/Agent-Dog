@@ -8,7 +8,7 @@ import { readDaemonInfo, isProcessAlive } from './daemon-info.js';
 describe('readDaemonInfo', () => {
   let dir: string;
   beforeAll(async () => {
-    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'mcpdog-pid-'));
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'agentdog-pid-'));
   });
   afterAll(async () => {
     await fs.rm(dir, { recursive: true, force: true });

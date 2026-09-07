@@ -2,7 +2,15 @@
 
 本项目所有显著变更都会记录在此文件中。
 
-## [未发布]
+## [1.2.0] - 2026-09-07
+
+- **调整（Web 界面）**：侧边栏底部版本号/配置路径移除，配置文件路径改由顶栏展示（窄屏自动隐藏，悬停显示全路径，版本号保留在顶栏运行状态徽章内）；"AI 供应商"页布局重排——页头（标题 + 数量徽章 + 右侧新增按钮）→ 网关设置压缩为单行横条卡（开关/运行徽章/监听地址/apiKey 管理），移除 Claude Code 接入配置卡片（环境变量示例与一键复制）。
+- **调整（Web 界面）**：管理界面参考 gemini2api 设计语言整体重设计。布局改为「sticky 玻璃拟态顶栏（品牌 + 运行状态徽章 + 主题切换 + GitHub）+ 240px 玻璃侧边栏 + 1600px 内容区」（≤900px 侧边栏隐藏、底部浮动图标导航）；路由扩为四页——`/dashboard`（新默认页：服务器/工具/AI 供应商/运行时长统计卡、系统信息面板、服务器状态网格、实时事件预览，数据复用既有接口与 socket 推送，无新增后端 API）、`/mcp`、`/providers`、`/logs`（新全局日志页：聚合实时事件流与服务器日志，按服务器筛选、暂停刷新、自动滚动）。
+- **调整（Web 界面）**：明暗两套主题统一为同一设计语言（同一支 Emerald 主色 + Slate 灰 + 同一语义色，仅表面亮度不同），通过覆盖 daisyUI 主题变量（`web/src/index.css` design tokens）实现全站控件（按钮/输入/开关/徽章/表格/弹窗）统一换肤；亮色主色用深一档 `#047857` 保证白底小字对比度 ≥4.5:1，暗色用亮调 `#10b981`。圆角体系：卡片 1rem、控件 0.6rem。设计稿与实施文档见 `doc/`（不入库）。
+- **修复（Web 界面）**：前端 `SystemStatus` 类型与 socket `status-update` 实际载荷不符（载荷为 `{ daemon: { uptime... }, mcpServer, servers, totalTools... }`，类型却声明 `uptime/timestamp/initialized`），已按真实载荷修正；Dashboard 运行时长取 `daemon.uptime`。
+- **调整（Web 界面）**：管理界面整体重设计为左侧边栏布局，"MCP 服务器 / AI 供应商"由页内 tab 切换改为侧边栏菜单导航，并引入前端路由（`react-router-dom`，`/mcp` 默认、`/providers`，`/` 与未知路径重定向 `/mcp`，刷新/直达由既有 SPA fallback 支持）。原蓝色渐变 Header 移除，版本/配置路径/主题切换/GitHub 收纳至侧边栏，视觉整体改为跟随明暗主题的中性色风格；登录页改为居中卡片式。页面内部组件交互不变，仅视觉微调。
+
+- **调整（对外约定）**：项目标识由 MCPDog 全面更名 AgentDog。运行时数据目录 `~/.mcpdog/` → `~/.agentdog/`（配置 `agentdog.config.json`、PID `agentdog.pid`、VBS/systemd/LaunchAgent 自启文件与 `com.agentdog.daemon` label 同步更名）；首次启动检测到旧配置时自动复制迁移到新路径（旧文件保留）。升级前请先停旧版 daemon（旧 PID 文件在新版本中不可见，`agentdog stop` 无法停止旧进程）。其余更名：协议展示名（initialize serverInfo.name、`mcpdog-proxy`/`mcpdog-detector`/`mcpdog-streamable-http`、User-Agent）、内部头 `X-MCPDog-Client` → `X-AgentDog-Client`、审计报告文件名前缀 `agentdog-audit-*`、Web localStorage 键（已存访问令牌失效，重新输入一次即可）、类名/类型名（MCPDogServer → AgentDogServer 等，含文件 `agentdog-server.ts`/`agentdog-daemon.ts`）。保留不变：环境变量 `MCPDOG_AUTH_TOKEN`（部署契约）、上游仓库链接（fork 来源）、CHANGELOG 历史条目。
 
 ## [1.1.0] - 2026-09-07
 

@@ -1,5 +1,5 @@
 /**
- * MCPDog Web Management Interface Server
+ * AgentDog Web Management Interface Server
  * Provides REST API and WebSocket real-time communication
  */
 
@@ -10,7 +10,7 @@ import cors from 'cors';
 import path from 'path';
 import { globalLogManager } from '../logging/server-log-manager.js';
 import { fileURLToPath } from 'url';
-import { MCPDogServer } from '../core/mcpdog-server.js';
+import { AgentDogServer } from '../core/agentdog-server.js';
 import { ConfigManager } from '../config/config-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -22,18 +22,18 @@ export interface WebServerOptions {
   staticPath?: string;
 }
 
-export class MCPDogWebServer {
+export class AgentDogWebServer {
   private app: express.Application;
   private server: any;
   private io: SocketIOServer;
-  private mcpServer: MCPDogServer;
+  private mcpServer: AgentDogServer;
   private configManager: ConfigManager;
   private port: number;
 
   constructor(options: WebServerOptions) {
     this.port = options.port;
     this.configManager = new ConfigManager(options.configPath, false);
-    this.mcpServer = new MCPDogServer(this.configManager);
+    this.mcpServer = new AgentDogServer(this.configManager);
     
     // Create Express application
     this.app = express();
@@ -388,7 +388,7 @@ export class MCPDogWebServer {
       }
       // Directly update the config object and save it
       // This will trigger the config-updated event in ConfigManager
-      // which MCPDogServer listens to for reinitialization.
+      // which AgentDogServer listens to for reinitialization.
       Object.assign(this.configManager.getConfig(), updates);
       await this.configManager.saveConfig();
       this.broadcastStatusUpdate();
@@ -404,7 +404,7 @@ export class MCPDogWebServer {
       // Immediately start Web server, do not wait for MCP server
       const webStartPromise = new Promise<void>((resolve) => {
         this.server.listen(this.port, () => {
-          console.log(`🌐 MCPDog Web界面启动在端口 ${this.port}`);
+          console.log(`🌐 AgentDog Web界面启动在端口 ${this.port}`);
           console.log(`📊 管理界面: http://localhost:${this.port}`);
           console.log(`🔌 WebSocket: ws://localhost:${this.port}`);
           console.log(`⚡ MCP server will connect asynchronously in the background...`);
@@ -427,7 +427,7 @@ export class MCPDogWebServer {
     try {
       console.log('🔄 Starting MCP server in background...');
       await this.mcpServer.start();
-      console.log('✅ MCPDog Server background startup complete');
+      console.log('✅ AgentDog Server background startup complete');
     } catch (error) {
       console.error('❌ MCP server background startup failed:', error);
       // Do not throw error, let Web interface remain available
@@ -440,7 +440,7 @@ export class MCPDogWebServer {
       
       return new Promise((resolve) => {
         this.server.close(() => {
-          console.log('MCPDog Web server stopped');
+          console.log('AgentDog Web server stopped');
           resolve();
         });
       });

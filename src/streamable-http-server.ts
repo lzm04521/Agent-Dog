@@ -1,13 +1,13 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { EventEmitter } from 'events';
 import { randomUUID } from 'crypto';
-import { MCPDogServer } from './core/mcpdog-server.js';
+import { AgentDogServer } from './core/agentdog-server.js';
 import { MCPMessage, MCPNotification, MCPNotificationRequest, MCPResponse, MCPRequest } from './types/index.js';
 import { ConfigManager } from './config/config-manager.js';
 import { createAuthMiddleware } from './middleware/auth.js';
 
 export class StreamableHttpMCPServer extends EventEmitter {
-  private server: MCPDogServer;
+  private server: AgentDogServer;
   private httpServer: any;
   private port: number;
   private authToken?: string;
@@ -25,7 +25,7 @@ export class StreamableHttpMCPServer extends EventEmitter {
     console.error(`[HTTP] Creating StreamableHttpMCPServer instance on port ${port}${authToken ? ' with authentication' : ''}`);
     this.port = port;
     this.authToken = authToken;
-    this.server = new MCPDogServer(configManager);
+    this.server = new AgentDogServer(configManager);
     
     // Setup auth middleware if token is provided
     if (this.authToken) {
@@ -43,15 +43,15 @@ export class StreamableHttpMCPServer extends EventEmitter {
     });
 
     this.server.on('error', ({ error, context }) => {
-      console.error(`MCPDog error [${context}]:`, error);
+      console.error(`AgentDog error [${context}]:`, error);
     });
 
     this.server.on('started', () => {
-      console.error('MCPDog Server started (HTTP streamable mode)');
+      console.error('AgentDog Server started (HTTP streamable mode)');
     });
 
     this.server.on('stopped', () => {
-      console.error('MCPDog Server stopped');
+      console.error('AgentDog Server stopped');
     });
   }
 
@@ -109,7 +109,7 @@ export class StreamableHttpMCPServer extends EventEmitter {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'healthy',
-      service: 'mcpdog-streamable-http',
+      service: 'agentdog-streamable-http',
       version: '2.0.15',
       timestamp: new Date().toISOString()
     }));

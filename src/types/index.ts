@@ -1,4 +1,4 @@
-// MCPDog 核心类型定义
+// AgentDog 核心类型定义
 import { EventEmitter } from 'events';
 
 export interface MCPServerConfig {
@@ -51,7 +51,7 @@ export interface MCPServerConfig {
   enabledTools?: string[]; // 保持向后兼容
 }
 
-export interface MCPDogConfig {
+export interface AgentDogConfig {
   version: string;
   servers: Record<string, MCPServerConfig>;
   web?: {
@@ -149,11 +149,11 @@ export interface ClientCapabilities {
 }
 
 // 事件类型
-export type MCPDogEvents = {
+export type AgentDogEvents = {
   'server-connected': { serverName: string };
   'server-disconnected': { serverName: string; error?: Error };
   'tools-changed': { serverName?: string };
-  'config-updated': { config: MCPDogConfig };
+  'config-updated': { config: AgentDogConfig };
   'tool-called': { serverName: string; toolName: string; args: any; result: any };
   'error': { error: Error; context?: string };
 };

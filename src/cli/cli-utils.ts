@@ -101,7 +101,7 @@ export class CLIUtils {
           description: packageJson.description
         });
       } else {
-        console.log(`\n${this.colorize('🐕 MCPDog', 'cyan')} v${packageJson.version}`);
+        console.log(`\n${this.colorize('🐕 AgentDog', 'cyan')} v${packageJson.version}`);
         console.log(`${packageJson.description}\n`);
       }
     } catch (error) {
@@ -120,14 +120,14 @@ export class CLIUtils {
     }
 
     console.log(`
-${this.colorize('🐕 MCPDog', 'cyan')} - Universal MCP Server Manager
+${this.colorize('🐕 AgentDog', 'cyan')} - Universal MCP Server Manager
 
 ${this.colorize('Usage:', 'yellow')}
   agentdog <command> [options]
 
 ${this.colorize('Main Commands:', 'yellow')}
-  ${this.colorize('start', 'green')}            Start MCPDog daemon (recommended)
-  ${this.colorize('stop', 'green')}             Stop MCPDog daemon
+  ${this.colorize('start', 'green')}            Start AgentDog daemon (recommended)
+  ${this.colorize('stop', 'green')}             Stop AgentDog daemon
   ${this.colorize('status', 'green')}           Check daemon status
   ${this.colorize('proxy', 'green')}            Connect to daemon as MCP client proxy
 
@@ -145,7 +145,7 @@ ${this.colorize('Advanced:', 'yellow')}
   ${this.colorize('serve', 'green')}            Legacy command (use 'proxy' instead)
 
 ${this.colorize('Global Options:', 'yellow')}
-  -c, --config <path>    Configuration file path (default: ./mcpdog.config.json)
+  -c, --config <path>    Configuration file path (default: ./agentdog.config.json)
   -h, --help             Show help information
   -v, --version          Show version information
   --verbose              Verbose output

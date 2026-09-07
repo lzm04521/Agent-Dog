@@ -4,7 +4,7 @@
 
 import { CLIUtils } from '../cli-utils.js';
 import { ConfigManager } from '../../config/config-manager.js';
-import { MCPDogDaemon } from '../../daemon/mcpdog-daemon.js';
+import { AgentDogDaemon } from '../../daemon/agentdog-daemon.js';
 import { DaemonClient } from '../../daemon/daemon-client.js';
 import { readDaemonInfo } from '../../daemon/daemon-info.js';
 import fs from 'fs/promises';
@@ -18,30 +18,30 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export class DaemonCommands {
   private configManager: ConfigManager;
-  private mcpdogDir: string;
+  private agentdogDir: string;
 
   constructor(configPath?: string) {
     this.configManager = new ConfigManager(configPath);
-    // Create ~/.mcpdog directory for PID files and configs
-    this.mcpdogDir = path.join(os.homedir(), '.mcpdog');
+    // Create ~/.agentdog directory for PID files and configs
+    this.agentdogDir = path.join(os.homedir(), '.agentdog');
   }
 
   /**
-   * Ensure ~/.mcpdog directory exists
+   * Ensure ~/.agentdog directory exists
    */
-  private async ensureMCPDogDir(): Promise<void> {
+  private async ensureAgentDogDir(): Promise<void> {
     try {
-      await fs.mkdir(this.mcpdogDir, { recursive: true });
+      await fs.mkdir(this.agentdogDir, { recursive: true });
     } catch (error) {
       // Directory already exists or cannot be created
     }
   }
 
   /**
-   * Get default PID file path in ~/.mcpdog directory
+   * Get default PID file path in ~/.agentdog directory
    */
   private getDefaultPidFile(): string {
-    return path.join(this.mcpdogDir, 'mcpdog.pid');
+    return path.join(this.agentdogDir, 'agentdog.pid');
   }
 
   /**
@@ -106,8 +106,8 @@ export class DaemonCommands {
     await this.configManager.loadConfig();
 
     try {
-      // Ensure ~/.mcpdog directory exists
-      await this.ensureMCPDogDir();
+      // Ensure ~/.agentdog directory exists
+      await this.ensureAgentDogDir();
 
       // Check if daemon is already running；版本不同（或旧格式 PID 文件无版本信息）时自动升级重启
       const runningInfo = await this.getDaemonInfoFromFile(pidFile);
@@ -164,7 +164,7 @@ export class DaemonCommands {
         CLIUtils.info(`AI gateway enabled, port saved to config: ${gatewayPort}`);
       }
 
-      const daemon = new MCPDogDaemon({
+      const daemon = new AgentDogDaemon({
         configPath: this.configManager.getConfigPath(),
         webPort,
         pidFile
@@ -201,7 +201,7 @@ export class DaemonCommands {
         }
       }
 
-      CLIUtils.success(`MCPDog daemon started (PID: ${process.pid})`);
+      CLIUtils.success(`AgentDog daemon started (PID: ${process.pid})`);
       CLIUtils.info(`Web interface: http://localhost:${webPort}`);
       CLIUtils.info(`Config file: ${this.configManager.getConfigPath()}`);
       CLIUtils.info('Press Ctrl+C to stop daemon');
@@ -325,7 +325,7 @@ export class DaemonCommands {
     const servers = status.servers || [];
 
     console.log(`
-✅ ${CLIUtils.colorize('MCPDog daemon is running', 'green')}
+✅ ${CLIUtils.colorize('AgentDog daemon is running', 'green')}
 
 ${CLIUtils.colorize('Daemon Info:', 'cyan')}
   🌐 Web port: ${port}
@@ -367,7 +367,7 @@ ${CLIUtils.colorize('Management:', 'cyan')}
 
   private displayConnectionError(error: Error, port: number): void {
     console.log(`
-❌ ${CLIUtils.colorize('Cannot connect to MCPDog daemon', 'red')}
+❌ ${CLIUtils.colorize('Cannot connect to AgentDog daemon', 'red')}
 
 ${CLIUtils.colorize('Connection Details:', 'yellow')}
   • Port: ${port}
@@ -378,7 +378,7 @@ ${CLIUtils.colorize('Possible Solutions:', 'yellow')}
      agentdog start --config your-config.json
 
   2. Check if daemon is running:
-     ps aux | grep mcpdog
+     ps aux | grep agentdog
 
   3. Check web port conflicts:
      lsof -i :${port}
@@ -454,7 +454,7 @@ ${CLIUtils.colorize('Quick Start:', 'cyan')}
   getCommands() {
     return {
       'daemon:start': {
-        description: 'Start MCPDog daemon',
+        description: 'Start AgentDog daemon',
         handler: this.start.bind(this),
         options: {
           'web-port': 'Enable Web interface port',
@@ -462,14 +462,14 @@ ${CLIUtils.colorize('Quick Start:', 'cyan')}
         }
       },
       'daemon:stop': {
-        description: 'Stop MCPDog daemon',
+        description: 'Stop AgentDog daemon',
         handler: this.stop.bind(this),
         options: {
           'pid-file': 'PID file path'
         }
       },
       'daemon:restart': {
-        description: 'Restart MCPDog daemon',
+        description: 'Restart AgentDog daemon',
         handler: this.restart.bind(this),
         options: {
           'web-port': 'Enable Web interface port',

@@ -1,4 +1,4 @@
-# MCPDog Dockerfile
+# AgentDog Dockerfile
 
 # ---- 基础镜像 ----
 # 固定 Node.js 版本，保证构建可复现

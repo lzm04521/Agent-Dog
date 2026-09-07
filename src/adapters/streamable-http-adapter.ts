@@ -51,7 +51,7 @@ export class StreamableHttpAdapter extends EventEmitter implements ServerAdapter
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json, text/event-stream',
-        'User-Agent': 'MCPDog/2.0.1-StreamableHTTP',
+        'User-Agent': 'AgentDog/2.0.1-StreamableHTTP',
         ...(config.headers || {}),
         ...(config.apiKey && { 'Authorization': `Bearer ${config.apiKey}` })
       }

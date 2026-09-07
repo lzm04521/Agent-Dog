@@ -85,7 +85,7 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
   return (
     <div className="h-full flex flex-col">
       {/* Top action bar */}
-      <div className="bg-base-100 border-b border-base-300 px-6 pb-4">
+      <div className="bg-base-100 border border-base-300 rounded-box shadow-sm px-4 lg:px-6 py-3">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center space-x-6 text-sm text-base-content/70">
@@ -112,7 +112,7 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
               className="btn btn-outline btn-sm flex items-center space-x-2"
             >
               <Copy className="h-4 w-4" />
-              <span>连接 MCPDOG</span>
+              <span>连接 AGENTDOG</span>
             </button>
 
             <button
@@ -127,7 +127,7 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
       </div>
 
       {/* Main content area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 min-h-0 mt-4 flex overflow-hidden bg-base-100 border border-base-300 rounded-box shadow-sm">
         {/* Left server list */}
         <div className="w-80 bg-base-100 border-r border-base-300 flex flex-col">
           <div className="p-4 border-b border-base-300">

@@ -19,23 +19,23 @@ describe('buildWindowsVbs', () => {
 
 describe('buildLaunchAgentPlist', () => {
   it('生成含 Label/RunAtLoad/ProgramArguments 的合法结构', () => {
-    const xml = buildLaunchAgentPlist('/usr/local/bin/node', '/opt/mcpdog/cli-main.js', '/tmp/mcpdog.log');
-    expect(xml).toContain('<string>com.mcpdog.daemon</string>');
+    const xml = buildLaunchAgentPlist('/usr/local/bin/node', '/opt/agentdog/cli-main.js', '/tmp/agentdog.log');
+    expect(xml).toContain('<string>com.agentdog.daemon</string>');
     expect(xml).toContain('<key>RunAtLoad</key>');
     expect(xml).toContain('<string>/usr/local/bin/node</string>');
-    expect(xml).toContain('<string>/opt/mcpdog/cli-main.js</string>');
+    expect(xml).toContain('<string>/opt/agentdog/cli-main.js</string>');
     expect(xml).toContain('<string>daemon</string>');
     expect(xml).toContain('<string>start</string>');
-    expect(xml).toContain('<string>/tmp/mcpdog.log</string>');
+    expect(xml).toContain('<string>/tmp/agentdog.log</string>');
   });
 });
 
 describe('buildSystemdUnit', () => {
   it('生成 user service 单元', () => {
-    const unit = buildSystemdUnit('/usr/bin/node', '/opt/mcpdog/cli-main.js');
+    const unit = buildSystemdUnit('/usr/bin/node', '/opt/agentdog/cli-main.js');
     expect(unit).toContain('[Unit]');
     expect(unit).toContain('[Service]');
-    expect(unit).toContain('ExecStart="/usr/bin/node" "/opt/mcpdog/cli-main.js" daemon start --no-color');
+    expect(unit).toContain('ExecStart="/usr/bin/node" "/opt/agentdog/cli-main.js" daemon start --no-color');
     expect(unit).toContain('WantedBy=default.target');
   });
 });

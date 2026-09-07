@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * MCPDog CLI - Main entry point for the command-line interface
+ * AgentDog CLI - Main entry point for the command-line interface
  * Supports server management, protocol detection, configuration optimization, etc.
  */
 

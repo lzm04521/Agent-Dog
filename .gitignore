@@ -79,3 +79,6 @@ docs/
 # Agents（项目文档仅本地，不入库）
 CLAUDE.md
 AGENTS.md
+
+# Playwright MCP 测试产物
+.playwright-mcp/

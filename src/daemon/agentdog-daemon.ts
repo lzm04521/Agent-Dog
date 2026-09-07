@@ -1,11 +1,11 @@
 /**
- * MCPDog Daemon
+ * AgentDog Daemon
  * Unified management of MCP servers, supporting multiple client access modes
  */
 
 import { EventEmitter } from 'events';
 import { Server as HttpServer } from 'http';
-import { MCPDogServer } from '../core/mcpdog-server.js';
+import { AgentDogServer } from '../core/agentdog-server.js';
 import { ConfigManager } from '../config/config-manager.js';
 import { StreamableHttpMCPServer } from '../streamable-http-server.js';
 import { AiGatewayServer } from '../ai-gateway/gateway-server.js';
@@ -26,8 +26,8 @@ export interface DaemonConfig {
   webPort?: number;
 }
 
-export class MCPDogDaemon extends EventEmitter {
-  private mcpServer: MCPDogServer;
+export class AgentDogDaemon extends EventEmitter {
+  private mcpServer: AgentDogServer;
   private configManager: ConfigManager;
   private webServer?: HttpServer;
   private httpMCPServer?: StreamableHttpMCPServer;
@@ -41,7 +41,7 @@ export class MCPDogDaemon extends EventEmitter {
     super();
     this.config = config;
     this.configManager = new ConfigManager(config.configPath);
-    this.mcpServer = new MCPDogServer(this.configManager);
+    this.mcpServer = new AgentDogServer(this.configManager);
 
     this.setupMCPServerEvents();
   }
@@ -171,7 +171,7 @@ export class MCPDogDaemon extends EventEmitter {
           roots: { listChanged: false }
         },
         clientInfo: {
-          name: 'MCPDog Daemon',
+          name: 'AgentDog Daemon',
           version: '2.0.0'
         }
       }
@@ -213,7 +213,7 @@ export class MCPDogDaemon extends EventEmitter {
 
   async start(): Promise<void> {
     try {
-      console.log('[DAEMON] Starting MCPDog daemon...');
+      console.log('[DAEMON] Starting AgentDog daemon...');
       
       // Load config file
       await this.configManager.loadConfig();
@@ -264,7 +264,7 @@ export class MCPDogDaemon extends EventEmitter {
       }
 
       this.isRunning = true;
-      console.log('[DAEMON] MCPDog daemon started successfully');
+      console.log('[DAEMON] AgentDog daemon started successfully');
       
     } catch (error) {
       console.error('[DAEMON] Failed to start daemon:', error);
@@ -274,7 +274,7 @@ export class MCPDogDaemon extends EventEmitter {
 
   async stop(): Promise<void> {
     try {
-      console.log('[DAEMON] Stopping MCPDog daemon...');
+      console.log('[DAEMON] Stopping AgentDog daemon...');
       
       this.isRunning = false;
 
@@ -311,7 +311,7 @@ export class MCPDogDaemon extends EventEmitter {
         }
       }
 
-      console.log('[DAEMON] MCPDog daemon stopped');
+      console.log('[DAEMON] AgentDog daemon stopped');
       
     } catch (error) {
       console.error('[DAEMON] Error stopping daemon:', error);

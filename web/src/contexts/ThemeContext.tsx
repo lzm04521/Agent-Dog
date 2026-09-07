@@ -14,7 +14,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
     // Check localStorage first, then default to dark
     if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('mcpdog-theme');
+      const stored = localStorage.getItem('agentdog-theme');
       if (stored === 'light' || stored === 'dark') {
         return stored;
       }
@@ -27,7 +27,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     document.documentElement.setAttribute('data-theme', theme);
     
     // Store in localStorage
-    localStorage.setItem('mcpdog-theme', theme);
+    localStorage.setItem('agentdog-theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {

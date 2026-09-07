@@ -408,7 +408,7 @@ export class ConfigCommands {
     
     // 获取当前工作目录和配置文件路径
     const cwd = process.cwd();
-    const configPath = this.configManager['configPath'] || './mcpdog.config.json';
+    const configPath = this.configManager['configPath'] || './agentdog.config.json';
     const { resolve } = await import('path');
     const absoluteConfigPath = resolve(configPath);
 
@@ -416,16 +416,16 @@ export class ConfigCommands {
       const configs = {
         absolutePath: {
           mcpServers: {
-            mcpdog: {
-              command: "mcpdog",
+            agentdog: {
+              command: "agentdog",
               args: ["serve", "--config", absoluteConfigPath]
             }
           }
         },
         workingDirectory: {
           mcpServers: {
-            mcpdog: {
-              command: "mcpdog", 
+            agentdog: {
+              command: "agentdog", 
               args: ["serve"],
               cwd: cwd
             }
@@ -436,10 +436,10 @@ export class ConfigCommands {
       return;
     }
 
-    console.log(`\n${CLIUtils.colorize('🐕 MCPDog MCP客户端配置生成器', 'cyan')}\n`);
+    console.log(`\n${CLIUtils.colorize('🐕 AgentDog MCP客户端配置生成器', 'cyan')}\n`);
     
     console.log(`${CLIUtils.colorize('📋 环境信息:', 'yellow')}`);
-    console.log(`  MCPDog目录: ${cwd}`);
+    console.log(`  AgentDog目录: ${cwd}`);
     console.log(`  配置文件: ${absoluteConfigPath}`);
     console.log(`  服务器总数: ${servers.length}`);
     console.log(`  启用服务器: ${enabledServers.length}`);
@@ -457,8 +457,8 @@ export class ConfigCommands {
     console.log('```json');
     console.log(JSON.stringify({
       mcpServers: {
-        mcpdog: {
-          command: "mcpdog",
+        agentdog: {
+          command: "agentdog",
           args: ["serve", "--config", absoluteConfigPath]
         }
       }
@@ -470,8 +470,8 @@ export class ConfigCommands {
     console.log('```json');
     console.log(JSON.stringify({
       mcpServers: {
-        mcpdog: {
-          command: "mcpdog",
+        agentdog: {
+          command: "agentdog",
           args: ["serve"],
           cwd: cwd
         }
@@ -480,12 +480,12 @@ export class ConfigCommands {
     console.log('```\n');
     
     // 方案3: Node.js后备
-    console.log(`${CLIUtils.colorize('🔧 方案3: Node.js后备 (如果mcpdog命令不可用)', 'yellow')}`);
+    console.log(`${CLIUtils.colorize('🔧 方案3: Node.js后备 (如果agentdog命令不可用)', 'yellow')}`);
     const nodePath = resolve(cwd, 'dist/cli/cli-main.js');
     console.log('```json');
     console.log(JSON.stringify({
       mcpServers: {
-        mcpdog: {
+        agentdog: {
           command: "node",
           args: [nodePath, "serve"],
           cwd: cwd
@@ -511,9 +511,9 @@ export class ConfigCommands {
     const configPath = args[0] || this.configManager.getConfigPath();
     
     console.log(`
-🚀 ${CLIUtils.colorize('MCPDog Configuration Wizard', 'cyan')}
+🚀 ${CLIUtils.colorize('AgentDog Configuration Wizard', 'cyan')}
 
-This wizard will help you create a new MCPDog configuration file.
+This wizard will help you create a new AgentDog configuration file.
 `);
 
     // 检查配置文件是否已存在
@@ -665,7 +665,7 @@ Let's add some MCP servers. You can add more later using 'agentdog config add'.
 ${config.web.enabled ? `🌐 Web interface: ${CLIUtils.colorize(`http://localhost:${config.web.port}`, 'blue')}` : ''}
 
 ${CLIUtils.colorize('Next steps:', 'yellow')}
-  1. Start MCPDog: ${CLIUtils.colorize(`agentdog start --config ${configPath}`, 'cyan')}
+  1. Start AgentDog: ${CLIUtils.colorize(`agentdog start --config ${configPath}`, 'cyan')}
   2. Configure MCP clients to use: ${CLIUtils.colorize('agentdog proxy', 'cyan')}
   3. Check status: ${CLIUtils.colorize('agentdog status', 'cyan')}
 `);
@@ -759,7 +759,7 @@ ${CLIUtils.colorize('Next steps:', 'yellow')}
     const configPath = args[0] || this.configManager.getConfigPath();
     
     console.log(`
-🔍 ${CLIUtils.colorize('MCPDog Configuration Validation', 'cyan')}
+🔍 ${CLIUtils.colorize('AgentDog Configuration Validation', 'cyan')}
 
 Validating configuration file: ${CLIUtils.colorize(configPath, 'yellow')}
 `);

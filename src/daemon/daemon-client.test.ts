@@ -28,7 +28,7 @@ describe('DaemonClient (HTTP)', () => {
           res.end(JSON.stringify({
             jsonrpc: '2.0',
             id: request.id,
-            result: { clientId: req.headers['x-mcpdog-client'] }
+            result: { clientId: req.headers['x-agentdog-client'] }
           }));
         } else {
           res.writeHead(404);
@@ -49,7 +49,7 @@ describe('DaemonClient (HTTP)', () => {
     client.disconnect();
   });
 
-  it('sendMCPRequest 转发 JSON-RPC 并携带 X-MCPDog-Client 头', async () => {
+  it('sendMCPRequest 转发 JSON-RPC 并携带 X-AgentDog-Client 头', async () => {
     const client = new DaemonClient({ baseUrl, clientType: 'cli', silent: true });
     const response = await client.sendMCPRequest({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} });
     expect(response.id).toBe(1);

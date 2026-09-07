@@ -29,7 +29,7 @@ describe('ConfigManager', () => {
   beforeEach(() => {
     // Reset mocks before each test
     vi.resetAllMocks();
-    configManager = new ConfigManager('/fake/path/mcpdog.config.json');
+    configManager = new ConfigManager('/fake/path/agentdog.config.json');
   });
 
   describe('updateServer', () => {
@@ -147,7 +147,7 @@ describe('ConfigManager', () => {
 
       expect(configManager.getWebPort()).toBe(61125);
       // 按 saveConfig 的目标路径取调用（shouldAutoCreateConfig 的探测写也走 writeFile，不能按序号取）
-      const saveCall = vi.mocked(fsPromises.writeFile).mock.calls.find(c => c[0] === '/fake/path/mcpdog.config.json');
+      const saveCall = vi.mocked(fsPromises.writeFile).mock.calls.find(c => c[0] === '/fake/path/agentdog.config.json');
       expect(saveCall).toBeDefined();
       const saved = JSON.parse(saveCall![1] as string);
       expect(saved.web).toEqual({ enabled: true, port: 61125, host: 'localhost' });
@@ -164,7 +164,7 @@ describe('ConfigManager', () => {
       await configManager.setWebPort(61125);
 
       expect(configManager.getWebPort()).toBe(61125);
-      const saveCall = vi.mocked(fsPromises.writeFile).mock.calls.find(c => c[0] === '/fake/path/mcpdog.config.json');
+      const saveCall = vi.mocked(fsPromises.writeFile).mock.calls.find(c => c[0] === '/fake/path/agentdog.config.json');
       expect(saveCall).toBeDefined();
       const saved = JSON.parse(saveCall![1] as string);
       expect(saved.web.port).toBe(61125);
@@ -205,7 +205,7 @@ describe('ConfigManager', () => {
       configManager.on('ai-providers-changed', () => events.push('changed'));
       configManager.addAIProvider({ ...baseProvider });
       await new Promise(r => setImmediate(r)); // 落盘为异步，flush 后断言
-      const saveCall = vi.mocked(fsPromises.writeFile).mock.calls.find(c => c[0] === '/fake/path/mcpdog.config.json');
+      const saveCall = vi.mocked(fsPromises.writeFile).mock.calls.find(c => c[0] === '/fake/path/agentdog.config.json');
       expect(saveCall).toBeDefined();
       expect(JSON.parse(saveCall![1] as string).providers).toHaveLength(1);
       expect(events).toHaveLength(1);
@@ -237,7 +237,7 @@ describe('ConfigManager', () => {
     it('setAIGateway 保存配置', async () => {
       await configManager.setAIGateway({ enabled: true, port: 62125, host: '127.0.0.1', apiKey: 'ad-sk-1' });
       expect(configManager.getAIGatewayConfig()).toEqual({ enabled: true, port: 62125, host: '127.0.0.1', apiKey: 'ad-sk-1' });
-      const saveCall = vi.mocked(fsPromises.writeFile).mock.calls.find(c => c[0] === '/fake/path/mcpdog.config.json');
+      const saveCall = vi.mocked(fsPromises.writeFile).mock.calls.find(c => c[0] === '/fake/path/agentdog.config.json');
       expect(JSON.parse(saveCall![1] as string).aiGateway).toBeDefined();
     });
   });

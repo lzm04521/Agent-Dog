@@ -6,7 +6,7 @@ import { ConfigManager } from '../../config/config-manager.js';
 import { CLIUtils } from '../cli-utils.js';
 import { DaemonCommands } from './daemon-commands.js';
 import { spawn } from 'child_process';
-import { MCPDogDaemon, DaemonConfig } from '../../daemon/mcpdog-daemon.js';
+import { AgentDogDaemon, DaemonConfig } from '../../daemon/agentdog-daemon.js';
 import { createServer } from 'net';
 import fs from 'fs/promises';
 import path from 'path';
@@ -50,7 +50,7 @@ export class StartCommand {
       const isAlreadyRunning = await this.isDaemonRunning(options);
       if (isAlreadyRunning) {
         console.log(`
-❌ ${CLIUtils.colorize('MCPDog daemon is already running', 'red')}
+❌ ${CLIUtils.colorize('AgentDog daemon is already running', 'red')}
 
 ${CLIUtils.colorize('Available actions:', 'yellow')}
   agentdog status    # Check current status
@@ -78,7 +78,7 @@ ${CLIUtils.colorize('Available actions:', 'yellow')}
     const dashboardPort = parseInt(options['dashboard-port']) ||
                          parseInt(options['web-port']) || 61125;
     const httpPort = parseInt(options['mcp-http-port']) || 4000;
-    const pidFile = options['pid-file'] || path.join(os.homedir(), '.mcpdog', 'mcpdog.pid');
+    const pidFile = options['pid-file'] || path.join(os.homedir(), '.agentdog', 'agentdog.pid');
 
     // 确定启动模式
     let enableStdio = true;  // 默认启用
@@ -111,7 +111,7 @@ ${CLIUtils.colorize('Available actions:', 'yellow')}
     const enabledServers = this.configManager.getEnabledServers();
 
     console.log(`
-🚀 ${CLIUtils.colorize('MCPDog started successfully!', 'green')}
+🚀 ${CLIUtils.colorize('AgentDog started successfully!', 'green')}
 
 📊 ${CLIUtils.colorize('Services:', 'cyan')}${startupConfig.enableStdio ? `
   ✅ Stdio Transport: Ready (for MCP clients)` : ''}${startupConfig.enableHttp ? `
@@ -123,11 +123,11 @@ ${CLIUtils.colorize('Available actions:', 'yellow')}
   🔧 Servers: ${Object.keys(enabledServers).join(', ')} (${this.getTotalToolCount()} tools)
 
 📋 ${CLIUtils.colorize('Usage:', 'cyan')}${startupConfig.enableStdio ? `
-  • MCP Clients: Use 'npx mcpdog@latest' in client config` : ''}${startupConfig.enableHttp ? `
+  • MCP Clients: Use 'npx agentdog@latest' in client config` : ''}${startupConfig.enableHttp ? `
   • HTTP Clients: Connect to http://localhost:${startupConfig.httpPort}` : ''}${startupConfig.enableDashboard ? `  
   • Manage: Visit http://localhost:${startupConfig.dashboardPort}` : ''}
 
-⏹️  ${CLIUtils.colorize('Stop:', 'cyan')} npx mcpdog@latest stop
+⏹️  ${CLIUtils.colorize('Stop:', 'cyan')} npx agentdog@latest stop
 
 ${CLIUtils.colorize('[INFO]', 'cyan')} Daemon is running in the background
 `);
@@ -145,10 +145,10 @@ ${CLIUtils.colorize('[INFO]', 'cyan')} Daemon is running in the background
       CLIUtils.warn(`HTTP port ${startupConfig.httpPort} is busy, using ${finalConfig.httpPort}`);
     }
 
-    // 确保 .mcpdog 目录存在
-    const mcpdogDir = path.dirname(finalConfig.pidFile);
+    // 确保 .agentdog 目录存在
+    const agentdogDir = path.dirname(finalConfig.pidFile);
     try {
-      await fs.mkdir(mcpdogDir, { recursive: true });
+      await fs.mkdir(agentdogDir, { recursive: true });
     } catch (error) {
       // 目录可能已存在，忽略错误
     }
@@ -164,7 +164,7 @@ ${CLIUtils.colorize('[INFO]', 'cyan')} Daemon is running in the background
     };
 
     // 启动 daemon
-    const daemon = new MCPDogDaemon(daemonConfig);
+    const daemon = new AgentDogDaemon(daemonConfig);
     
     try {
       await daemon.start();
@@ -252,7 +252,7 @@ ${CLIUtils.colorize('Need help?', 'cyan')}
   }
 
   private async isDaemonRunning(options: Record<string, any>): Promise<boolean> {
-    const pidFile = options['pid-file'] || path.join(process.cwd(), 'mcpdog.pid');
+    const pidFile = options['pid-file'] || path.join(process.cwd(), 'agentdog.pid');
     try {
       const pidData = await fs.readFile(pidFile, 'utf-8');
       const pid = parseInt(pidData.trim());
@@ -267,7 +267,7 @@ ${CLIUtils.colorize('Need help?', 'cyan')}
 
   private showStartingInfo(options: Record<string, any>): void {
     console.log(`
-🚀 ${CLIUtils.colorize('Starting MCPDog daemon...', 'cyan')}
+🚀 ${CLIUtils.colorize('Starting AgentDog daemon...', 'cyan')}
 `);
   }
 
@@ -280,16 +280,16 @@ ${CLIUtils.colorize('Need help?', 'cyan')}
 
   private showHelp(): void {
     console.log(`
-${CLIUtils.colorize('agentdog start', 'cyan')} - Start MCPDog daemon with all services
+${CLIUtils.colorize('agentdog start', 'cyan')} - Start AgentDog daemon with all services
 
 ${CLIUtils.colorize('Usage:', 'yellow')}
   agentdog start [options]
 
 ${CLIUtils.colorize('Options:', 'yellow')}
-  -c, --config <path>        Configuration file path (default: ./mcpdog.config.json)
+  -c, --config <path>        Configuration file path (default: ./agentdog.config.json)
   --dashboard-port <port>    Dashboard UI port (default: 61125, auto-detected)
   --mcp-http-port <port>     HTTP transport port (default: 4000, auto-detected)
-  --pid-file <path>          PID file location (default: ~/.mcpdog/mcpdog.pid)
+  --pid-file <path>          PID file location (default: ~/.agentdog/agentdog.pid)
   
   --stdio-only               Only enable stdio transport + dashboard
   --http-only                Only enable HTTP transport + dashboard
@@ -313,7 +313,7 @@ ${CLIUtils.colorize('Examples:', 'yellow')}
   agentdog start --mcp-http-port 4001         # Custom HTTP port
 
 ${CLIUtils.colorize('After starting:', 'yellow')}
-  • MCP Clients: Use 'npx mcpdog@latest' in client config
+  • MCP Clients: Use 'npx agentdog@latest' in client config
   • HTTP Clients: Connect to http://localhost:4000
   • Management: Visit http://localhost:61125
   • Stop: agentdog stop

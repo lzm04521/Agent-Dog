@@ -403,7 +403,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     console.log('[ConfigStore] Setting auth state:', { required, hasToken: !!token });
     set({ 
       authRequired: required, 
-      authToken: token || localStorage.getItem('mcpdog_token') 
+      authToken: token || localStorage.getItem('agentdog_token') 
     });
   }
 }));

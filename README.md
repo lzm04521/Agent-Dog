@@ -101,7 +101,7 @@ docker build -t agentdog .
 docker run -d -p 61125:61125 agentdog
 ```
 
-> 配置固定存放在用户主目录 `~/.mcpdog/mcpdog.config.json`。镜像以非 root 用户（appuser）运行，容器部署时把该用户的 `~/.mcpdog` 目录挂载为卷即可持久化配置（如 `-v <宿主目录>:/home/appuser/.mcpdog`）。
+> 配置固定存放在用户主目录 `~/.agentdog/agentdog.config.json`。镜像以非 root 用户（appuser）运行，容器部署时把该用户的 `~/.agentdog` 目录挂载为卷即可持久化配置（如 `-v <宿主目录>:/home/appuser/.agentdog`）。
 
 ### 端口与网络约定
 
@@ -123,7 +123,7 @@ agentdog daemon autostart --disable   # 移除开机自启
 
 | 平台 | 机制 | 说明 |
 |---|---|---|
-| Windows | HKCU Run 注册表键 + `~/.mcpdog` 下隐藏 VBS 启动器 | 登录时无窗口静默启动 daemon |
+| Windows | HKCU Run 注册表键 + `~/.agentdog` 下隐藏 VBS 启动器 | 登录时无窗口静默启动 daemon |
 | macOS | LaunchAgent | 用户级 launchd 代理 |
 | Linux | systemd user unit | 需 `systemd --user` 可用 |
 
@@ -184,7 +184,7 @@ export ANTHROPIC_SMALL_FAST_MODEL=deepseek:deepseek-chat
 
 ## 🧩 子服务器配置示例
 
-配置文件位于 `~/.mcpdog/mcpdog.config.json`，也可全部在 Web 界面操作：
+配置文件位于 `~/.agentdog/agentdog.config.json`，也可全部在 Web 界面操作：
 
 ```json
 {

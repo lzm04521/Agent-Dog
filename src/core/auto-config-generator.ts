@@ -84,7 +84,7 @@ export class AutoConfigGenerator {
           endpoint,
           sessionMode: options?.enableSessionMode !== false ? 'auto' : 'disabled',
           headers: {
-            'User-Agent': 'MCPDog/2.0.1-AutoConfig',
+            'User-Agent': 'AgentDog/2.0.1-AutoConfig',
             ...(options?.headers || {})
           }
         };
@@ -102,7 +102,7 @@ export class AutoConfigGenerator {
           sseReconnectInterval: 5000,
           httpKeepAlive: true,
           headers: {
-            'User-Agent': 'MCPDog/2.0.1-AutoConfig',
+            'User-Agent': 'AgentDog/2.0.1-AutoConfig',
             ...(options?.headers || {})
           }
         };
@@ -123,7 +123,7 @@ export class AutoConfigGenerator {
           endpoint,
           sessionMode: 'auto',
           headers: {
-            'User-Agent': 'MCPDog/2.0.1-AutoConfig',
+            'User-Agent': 'AgentDog/2.0.1-AutoConfig',
             ...(options?.headers || {})
           }
         };

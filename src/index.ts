@@ -1,17 +1,17 @@
 import { createInterface } from 'readline';
-import { MCPDogServer } from './core/mcpdog-server.js';
-import { MCPDogConfig, MCPMessage, MCPNotification, MCPNotificationRequest, MCPResponse, MCPRequest } from './types/index.js';
+import { AgentDogServer } from './core/agentdog-server.js';
+import { AgentDogConfig, MCPMessage, MCPNotification, MCPNotificationRequest, MCPResponse, MCPRequest } from './types/index.js';
 import { ConfigManager } from './config/config-manager.js';
 import { StreamableHttpMCPServer } from './streamable-http-server.js';
 
 export class StdioMCPServer {
-  private server: MCPDogServer;
+  private server: AgentDogServer;
   private readline: any;
   private lastProcessedLine: string = ''; // Prevent duplicate line processing
 
   constructor(configManager: ConfigManager) {
     console.error(`[STDIO] Creating StdioMCPServer instance`);
-    this.server = new MCPDogServer(configManager);
+    this.server = new AgentDogServer(configManager);
     this.setupServer();
     this.setupStdio();
   }
@@ -22,15 +22,15 @@ export class StdioMCPServer {
     });
 
     this.server.on('error', ({ error, context }) => {
-      console.error(`MCPDog error [${context}]:`, error);
+      console.error(`AgentDog error [${context}]:`, error);
     });
 
     this.server.on('started', () => {
-      console.error('MCPDog Server started (stdio mode)');
+      console.error('AgentDog Server started (stdio mode)');
     });
 
     this.server.on('stopped', () => {
-      console.error('MCPDog Server stopped');
+      console.error('AgentDog Server stopped');
     });
   }
 
@@ -116,7 +116,7 @@ export class StdioMCPServer {
   }
 
   private async shutdown(): Promise<void> {
-    console.error('Shutting down MCPDog Server...');
+    console.error('Shutting down AgentDog Server...');
     
     try {
       if (this.readline) {
@@ -154,19 +154,19 @@ function parseArgs(): { configPath?: string; webPort?: number; transport?: strin
       i++;
     } else if (arg === '--help' || arg === '-h') {
       console.log(`
-MCPDog - Universal MCP Server Manager
+AgentDog - Universal MCP Server Manager
 
-Usage: mcpdog [options]
+Usage: agentdog [options]
 
 Options:
-  -c, --config <path>     Configuration file path (default: ./mcpdog.config.json)
+  -c, --config <path>     Configuration file path (default: ./agentdog.config.json)
   -t, --transport <type>  Transport protocol: stdio (default) or streamable-http
   -p, --port <port>       Port for HTTP transport (default: 4000)
   --web-port <port>       Enable web interface on port (experimental)
   -h, --help              Show this help message
 
 Examples:
-  mcpdog                                    # Start with stdio transport
+  agentdog                                    # Start with stdio transport
   agentdog --transport streamable-http        # Start with HTTP transport on default port
   agentdog --transport streamable-http --port 8080  # Start with HTTP transport on port 8080
   agentdog --config ./my-config.json         # Use custom config file

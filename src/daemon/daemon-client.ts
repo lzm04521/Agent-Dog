@@ -1,7 +1,7 @@
 /**
- * MCPDog Daemon Client（HTTP 版）
+ * AgentDog Daemon Client（HTTP 版）
  * daemon IPC 已与 Web 端口合并（doc/20260907-设计文档-daemon-IPC与Web端口合并.md）：
- * 探活走 GET /api/status，MCP 转发走 POST /api/mcp，clientId 由 X-MCPDog-Client 头携带。
+ * 探活走 GET /api/status，MCP 转发走 POST /api/mcp，clientId 由 X-AgentDog-Client 头携带。
  */
 
 import { EventEmitter } from 'events';
@@ -50,7 +50,7 @@ export class DaemonClient extends EventEmitter {
   private buildHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'X-MCPDog-Client': this.clientId
+      'X-AgentDog-Client': this.clientId
     };
     if (this.config.token) {
       headers['Authorization'] = `Bearer ${this.config.token}`;

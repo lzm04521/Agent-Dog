@@ -96,7 +96,7 @@ export const AddServerModal: React.FC = () => {
         // Claude Desktop format: { "mcpServers": { "server-name": {...} } }
         servers = parsed.mcpServers;
       } else if (parsed.servers) {
-        // MCPDog format: { "servers": { "server-name": {...} } }
+        // AgentDog format: { "servers": { "server-name": {...} } }
         servers = parsed.servers;
       } else if (typeof parsed === 'object' && !Array.isArray(parsed)) {
         // Direct server configuration: { "server-name": {...} }

@@ -638,17 +638,17 @@ export class ToolRouter extends EventEmitter {
     }
   }
 
-  // Get number of connected servers (for MCPDogServer)
+  // Get number of connected servers (for AgentDogServer)
   getConnectedServerCount(): number {
     return this.getConnectedAdapters().length;
   }
 
-  // Get total number of servers (for MCPDogServer)
+  // Get total number of servers (for AgentDogServer)
   getTotalServerCount(): number {
     return this.adapters.size;
   }
 
-  // Get tool distribution (for MCPDogServer)
+  // Get tool distribution (for AgentDogServer)
   getToolDistribution(): Record<string, number> {
     const distribution: Record<string, number> = {};
     

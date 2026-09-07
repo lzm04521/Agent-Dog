@@ -67,9 +67,9 @@ export const ClientConfigModal: React.FC = () => {
         {/* Modal header */}
         <div className="flex items-center justify-between p-6 border-b border-base-300">
           <div>
-            <h2 className="text-xl font-bold text-base-content">连接 MCPDOG</h2>
+            <h2 className="text-xl font-bold text-base-content">连接 AGENTDOG</h2>
             <p className="text-sm text-base-content/70 mt-1">
-              使用以下 JSON 配置将你的 MCP 客户端连接到 MCPDog
+              使用以下 JSON 配置将你的 MCP 客户端连接到 AgentDog
             </p>
           </div>
           <button

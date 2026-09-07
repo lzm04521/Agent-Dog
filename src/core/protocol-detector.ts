@@ -20,7 +20,7 @@ export interface ProtocolTestResult {
 
 export class ProtocolDetector {
   private timeout: number = 10000; // 10秒超时
-  private userAgent: string = 'MCPDog-ProtocolDetector/2.0.1';
+  private userAgent: string = 'AgentDog-ProtocolDetector/2.0.1';
 
   constructor(timeout?: number) {
     if (timeout) {
@@ -78,7 +78,7 @@ export class ProtocolDetector {
           protocolVersion: '2025-03-26',
           capabilities: {},
           clientInfo: {
-            name: 'mcpdog-detector',
+            name: 'agentdog-detector',
             version: '2.0.1'
           }
         }

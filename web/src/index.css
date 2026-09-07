@@ -2,6 +2,134 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * AgentDog 全局设计 token（参考 gemini2api 设计语言）
+ * 明暗两套主题共用同一支 Emerald 主色、同一套语义色与圆角/动效，
+ * 仅表面亮度不同；通过覆盖 daisyUI 5 的 --color-* 主题变量实现全站换肤，
+ * 所有 btn/input/select/badge/toggle/modal/table 控件自动套用。
+ * 注：以下规则未放入 @layer，故优先级高于 Tailwind/daisyUI 分层样式。
+ */
+
+:root,
+[data-theme="dark"] {
+  /* 表面（Slate 暗色） */
+  --color-base-100: #1e293b; /* 卡片面 */
+  --color-base-200: #0f172a; /* 页面底 */
+  --color-base-300: #334155; /* 边框/分隔 */
+  --color-base-content: #f1f5f9;
+
+  /* 主色：Emerald（暗色用亮调保证对比度） */
+  --color-primary: #10b981;
+  --color-primary-content: #052e16;
+  --color-secondary: #94a3b8;
+  --color-secondary-content: #0f172a;
+  --color-accent: #34d399;
+  --color-accent-content: #052e16;
+  --color-neutral: #1e293b;
+  --color-neutral-content: #f1f5f9;
+
+  /* 语义色（明暗同值） */
+  --color-info: #3b82f6;
+  --color-info-content: #ffffff;
+  --color-success: #10b981;
+  --color-success-content: #052e16;
+  --color-warning: #f59e0b;
+  --color-warning-content: #451a03;
+  --color-error: #ef4444;
+  --color-error-content: #ffffff;
+
+  /* 圆角体系：卡片 1rem、控件 0.6rem */
+  --radius-box: 1rem;
+  --radius-field: 0.6rem;
+  --radius-selector: 0.6rem;
+
+  /* 玻璃拟态 */
+  --glass-bg: rgba(30, 41, 59, 0.85);
+  --glass-border: rgba(51, 65, 85, 0.9);
+}
+
+[data-theme="light"] {
+  /* 表面（Slate 亮色，同一设计语言仅提亮） */
+  --color-base-100: #ffffff;
+  --color-base-200: #f1f5f9;
+  --color-base-300: #e2e8f0;
+  --color-base-content: #0f172a;
+
+  /* 主色：Emerald（亮色用深一档保证白底小字对比度 ≥4.5:1） */
+  --color-primary: #047857;
+  --color-primary-content: #ffffff;
+  --color-secondary: #475569;
+  --color-secondary-content: #ffffff;
+  --color-accent: #059669;
+  --color-accent-content: #ffffff;
+  --color-neutral: #0f172a;
+  --color-neutral-content: #f1f5f9;
+
+  --color-info: #3b82f6;
+  --color-info-content: #ffffff;
+  --color-success: #047857;
+  --color-success-content: #ffffff;
+  --color-warning: #f59e0b;
+  --color-warning-content: #ffffff;
+  --color-error: #ef4444;
+  --color-error-content: #ffffff;
+
+  --radius-box: 1rem;
+  --radius-field: 0.6rem;
+  --radius-selector: 0.6rem;
+
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(226, 232, 240, 0.9);
+}
+
+body {
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* 玻璃拟态面板（顶栏/侧边栏） */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* 页面切换动画 */
+.page-fade {
+  animation: ad-fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes ad-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 日志终端（全局日志页 / 服务器日志 tab 共用） */
+.log-terminal {
+  background: var(--color-base-200);
+  border: 1px solid var(--color-base-300);
+  border-radius: var(--radius-field);
+  padding: 0.75rem 1rem;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.76rem;
+  line-height: 1.7;
+}
+
+.log-terminal .log-time {
+  color: var(--color-base-content);
+  opacity: 0.45;
+}
+
+.log-terminal .log-info { color: var(--color-info); }
+.log-terminal .log-ok { color: var(--color-success); }
+.log-terminal .log-err { color: var(--color-error); }
+.log-terminal .log-warn { color: var(--color-warning); }
+
 @layer components {
   /* Custom scrollbar */
   .scrollbar-thin::-webkit-scrollbar {
@@ -17,6 +145,6 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    @apply bg-base-400;
+    background: color-mix(in srgb, var(--color-base-content) 40%, transparent);
   }
 }

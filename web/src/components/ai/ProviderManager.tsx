@@ -54,18 +54,23 @@ export const ProviderManager: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <GatewaySettings />
-
-      <div className="flex items-center justify-between">
-        <h2 className="text-base font-medium">AI 供应商（{providers.length}）</h2>
-        <button className="btn btn-primary btn-sm" onClick={() => setShowProviderModal(true)}>
+      {/* 页面头：标题 + 数量 + 新增入口 */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <h1 className="text-xl font-bold">AI 供应商</h1>
+        <span className="badge badge-ghost badge-sm">{providers.length}</span>
+        <span className="hidden sm:block text-xs text-base-content/50">
+          Claude Code 等客户端经网关以 slug:modelId 寻址访问任意上游
+        </span>
+        <button className="btn btn-primary btn-sm ml-auto" onClick={() => setShowProviderModal(true)}>
           <Plus className="w-4 h-4" /> 新增供应商
         </button>
       </div>
 
+      <GatewaySettings />
+
       {providers.length === 0 && (
         <div className="alert">
-          <span className="text-sm">暂无供应商。新增后 Claude Code 通过 <code className="font-mono">slug:modelId</code> 寻址访问任意上游。</span>
+          <span className="text-sm">暂无供应商。新增后客户端通过 <code className="font-mono">slug:modelId</code> 寻址访问任意上游。</span>
         </div>
       )}
 
@@ -73,7 +78,7 @@ export const ProviderManager: React.FC = () => {
         {providers.map(p => {
           const test = testResults[p.id];
           return (
-            <div key={p.id} className={`card bg-base-100 shadow-sm border ${p.enabled ? 'border-base-300/50' : 'border-base-300/30 opacity-70'}`}>
+            <div key={p.id} className={`card bg-base-100 shadow-sm border ${p.enabled ? 'border-base-300' : 'border-base-300/60 opacity-70'}`}>
               <div className="card-body p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">

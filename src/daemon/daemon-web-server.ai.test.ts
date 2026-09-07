@@ -10,7 +10,7 @@ vi.mock('../ai-gateway/upstream/model-lister.js', () => ({
   listUpstreamModels: vi.fn().mockResolvedValue({ ok: true, status: 200, models: ['m1', 'm2'], message: 'ok' }),
 }));
 
-const configPath = join(tmpdir(), `mcpdog-ai-test-${Date.now()}.json`);
+const configPath = join(tmpdir(), `agentdog-ai-test-${Date.now()}.json`);
 
 function createTestServer() {
   const configManager = new ConfigManager(configPath, false);

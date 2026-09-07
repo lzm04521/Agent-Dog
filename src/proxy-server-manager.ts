@@ -21,7 +21,7 @@ export class ProxyServerManager {
       }
     }
 
-    console.log(`[MCPDog] Starting ${serverName} server...`);
+    console.log(`[AgentDog] Starting ${serverName} server...`);
     
     try {
       const serverProcess = spawn(config.command, config.args, {
@@ -40,7 +40,7 @@ export class ProxyServerManager {
       // Listen to server output, wait for server to be ready
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
-          console.log(`[MCPDog] ${serverName} server startup timeout`);
+          console.log(`[AgentDog] ${serverName} server startup timeout`);
           this.stopServer(serverName);
           reject(new Error(`Server ${serverName} startup timeout`));
         }, this.serverTimeout);
@@ -55,24 +55,24 @@ export class ProxyServerManager {
           if (!activeServer.isReady) {
             activeServer.isReady = true;
             clearTimeout(timeout);
-            console.log(`[MCPDog] ${serverName} server is ready`);
+            console.log(`[AgentDog] ${serverName} server is ready`);
             resolve(true);
           }
         });
 
         serverProcess.stderr?.on('data', (data) => {
-          console.error(`[MCPDog] ${serverName} error:`, data.toString());
+          console.error(`[AgentDog] ${serverName} error:`, data.toString());
         });
 
         serverProcess.on('error', (error) => {
           clearTimeout(timeout);
-          console.error(`[MCPDog] ${serverName} startup failed:`, error);
+          console.error(`[AgentDog] ${serverName} startup failed:`, error);
           this.stopServer(serverName);
           reject(error);
         });
 
         serverProcess.on('exit', (code) => {
-          console.log(`[MCPDog] ${serverName} server exited with code: ${code}`);
+          console.log(`[AgentDog] ${serverName} server exited with code: ${code}`);
           this.activeServers.delete(serverName);
         });
 
@@ -89,7 +89,7 @@ export class ProxyServerManager {
               }
             },
             clientInfo: {
-              name: "mcpdog-proxy",
+              name: "agentdog-proxy",
               version: "2.0.0"
             }
           }
@@ -99,7 +99,7 @@ export class ProxyServerManager {
       });
 
     } catch (error) {
-      console.error(`[MCPDog] Failed to start ${serverName}:`, error);
+      console.error(`[AgentDog] Failed to start ${serverName}:`, error);
       return false;
     }
   }
@@ -157,7 +157,7 @@ export class ProxyServerManager {
     if (server) {
       server.process.kill();
       this.activeServers.delete(serverName);
-      console.log(`[MCPDog] ${serverName} server stopped`);
+      console.log(`[AgentDog] ${serverName} server stopped`);
     }
   }
 

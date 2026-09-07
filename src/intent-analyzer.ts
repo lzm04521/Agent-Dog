@@ -47,8 +47,8 @@ export class IntentAnalyzer {
   };
 
   async parseIntent(userRequest: string): Promise<UserIntent> {
-    // Remove "use mcpdog" part
-    const cleanRequest = userRequest.replace(/,?\s*use\s+mcpdog\s*$/i, '').trim();
+    // Remove "use agentdog" part
+    const cleanRequest = userRequest.replace(/,?\s*use\s+agentdog\s*$/i, '').trim();
     
     if (!cleanRequest || cleanRequest.length < 3) {
       return {
@@ -96,7 +96,7 @@ export class IntentAnalyzer {
     // Extract keywords from request (simple word splitting)
     const words = request.toLowerCase().match(/\b\w+\b/g) || [];
     words.forEach(word => {
-      if (word.length > 2 && !['the', 'and', 'or', 'but', 'to', 'use', 'mcpdog', 'com', 'www'].includes(word)) {
+      if (word.length > 2 && !['the', 'and', 'or', 'but', 'to', 'use', 'agentdog', 'com', 'www'].includes(word)) {
         keywords.add(word);
       }
     });

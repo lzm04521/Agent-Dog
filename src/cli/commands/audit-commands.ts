@@ -362,7 +362,7 @@ ${CLIUtils.colorize('📊 Configuration Audit Report', 'cyan')}`);
 
   private async exportReport(results: any, format: string): Promise<void> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `mcpdog-audit-${timestamp}.${format}`;
+    const filename = `agentdog-audit-${timestamp}.${format}`;
 
     try {
       const { writeFile } = await import('fs/promises');
@@ -371,7 +371,7 @@ ${CLIUtils.colorize('📊 Configuration Audit Report', 'cyan')}`);
         await writeFile(filename, JSON.stringify(results, null, 2));
       } else {
         // Simple text format
-        const text = `MCPDog Configuration Audit Report
+        const text = `AgentDog Configuration Audit Report
 Audit Time: ${new Date(results.timestamp).toLocaleString()}
 Total Servers: ${results.servers}
 Enabled Servers: ${results.enabledServers}

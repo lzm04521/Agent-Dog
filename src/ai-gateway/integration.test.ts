@@ -30,7 +30,7 @@ describe('AI gateway 端到端', () => {
   let upstreamConnectionsClosed = 0;
   let gateway: AiGatewayServer;
   let gwPort: number;
-  const configPath = join(tmpdir(), `mcpdog-gw-itest-${Date.now()}.json`);
+  const configPath = join(tmpdir(), `agentdog-gw-itest-${Date.now()}.json`);
 
   beforeAll(async () => {
     // mock 上游
