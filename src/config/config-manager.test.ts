@@ -123,6 +123,22 @@ describe('ConfigManager', () => {
       expect(configManager.getWebPort()).toBe(61234);
     });
 
+    it('无 web 配置时 getWebHost 返回 localhost', async () => {
+      vi.mocked(fsPromises.readFile).mockResolvedValue(JSON.stringify({ version: '2.0.0', servers: {} }));
+      await configManager.loadConfig();
+      expect(configManager.getWebHost()).toBe('localhost');
+    });
+
+    it('配置含 web.host 时 getWebHost 返回该值', async () => {
+      vi.mocked(fsPromises.readFile).mockResolvedValue(JSON.stringify({
+        version: '2.0.0',
+        servers: {},
+        web: { enabled: true, port: 61234, host: '0.0.0.0' }
+      }));
+      await configManager.loadConfig();
+      expect(configManager.getWebHost()).toBe('0.0.0.0');
+    });
+
     it('setWebPort 首次设置创建 web 字段并落盘', async () => {
       vi.mocked(fsPromises.readFile).mockResolvedValue(JSON.stringify({ version: '2.0.0', servers: {} }));
       await configManager.loadConfig();

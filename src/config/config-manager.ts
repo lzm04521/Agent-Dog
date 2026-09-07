@@ -152,6 +152,10 @@ export class ConfigManager extends EventEmitter {
     return this.config?.web?.port ?? null;
   }
 
+  getWebHost(): string {
+    return this.config?.web?.host ?? 'localhost';
+  }
+
   async setWebPort(port: number): Promise<void> {
     if (!this.config.web) {
       this.config.web = { enabled: true, port, host: 'localhost' };
