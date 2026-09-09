@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
-import { Plus, Copy, Settings, LogOut } from 'lucide-react';
+import { Plus, Copy, Settings, LogOut, Download } from 'lucide-react';
 import { useConfigStore } from '../store/configStore';
 import { useAppStore } from '../store/useAppStore';
 import { ServerListItem } from './ServerListItem';
 import { ServerPanel } from './ServerPanel';
 import { AddServerModal } from './AddServerModal';
 import { ClientConfigModal } from './ClientConfigModal';
+import { ClaudeImportModal } from './ClaudeImportModal';
 import { ServerStatus } from '../types/index';
 
 interface ServerManagerProps {
@@ -22,8 +23,10 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
     error,
     showAddServer,
     showClientConfig,
+    showClaudeImport,
     showAddServerModal,
     showClientConfigModal,
+    showClaudeImportModal,
     loadConfig,
   } = useConfigStore();
 
@@ -106,6 +109,15 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
                 <span>退出登录</span>
               </button>
             )}
+
+            <button
+              onClick={showClaudeImport}
+              className="btn btn-outline btn-sm flex items-center space-x-2"
+              title="从 C:\\Users\\当前用户\\.claude.json 导入 Claude Code 的 MCP 服务器到 MCPDog"
+            >
+              <Download className="h-4 w-4" />
+              <span>一键导入 Claude MCP</span>
+            </button>
 
             <button
               onClick={showClientConfig}
@@ -195,6 +207,7 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
       {/* Modal windows */}
       {showAddServerModal && <AddServerModal />}
       {showClientConfigModal && <ClientConfigModal />}
+      {showClaudeImportModal && <ClaudeImportModal />}
     </div>
   );
 };

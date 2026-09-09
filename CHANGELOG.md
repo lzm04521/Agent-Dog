@@ -2,6 +2,10 @@
 
 本项目所有显著变更都会记录在此文件中。
 
+## [1.0.8] - 2026-09-09
+
+- **新增**：Web 管理界面「连接 MCPDOG」旁新增「一键导入 Claude MCP」按钮，读取 `C:\Users\<用户名>\.claude.json` 顶层的用户级 `mcpServers` 批量导入到 MCPDog。先预览「将导入 / 将跳过」清单再确认；同名冲突跳过、名称不合规或缺 `command`/`url` 的条目跳过并注明原因，`disabled` 条目按禁用状态导入；导入成功的启用服务器自动连接。读取与转换在 daemon 本机完成（浏览器无法直接访问用户主目录文件），导入逻辑抽离为纯函数模块 `claude-mcp-importer` 并补齐单测。
+
 ## [1.0.7] - 2026-09-09
 
 - **修复（关键）**：直接编辑 `~/.mcpdog/mcpdog.config.json` 后 daemon 永不重载。配置文件 watch 曾发出 `configChanged` 事件，而 daemon / 核心服务监听的是 `config-updated`（该事件此前从未被发出），事件名不匹配导致文件级配置变更被静默忽略。现统一为 `config-updated`，并处理编辑器常用的"临时文件 + rename"式保存（此前仅响应 change 事件），加 300ms 防抖合并同一次保存的多次变更事件。
