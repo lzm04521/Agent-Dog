@@ -151,6 +151,7 @@ export class MCPDogServer extends EventEmitter {
       
       // Cleanup
       this.isInitialized = false;
+      this.isStarted = false; // 重置防重入标记，保证 stop() 后可以再次 start()
       this.clientCapabilities = undefined;
       
       console.error('MCPDog Server stopped');

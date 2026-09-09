@@ -6,6 +6,7 @@ import { CLIUtils } from '../cli-utils.js';
 import { ConfigManager } from '../../config/config-manager.js';
 import { MCPDogDaemon } from '../../daemon/mcpdog-daemon.js';
 import { DaemonClient } from '../../daemon/daemon-client.js';
+import { startDaemonFileLogging } from '../../logging/daemon-file-logger.js';
 import fs from 'fs/promises';
 import { readFileSync } from 'fs';
 import path from 'path';
@@ -133,6 +134,11 @@ export class DaemonCommands {
         webPort = await this.findAvailablePort(38881);
         CLIUtils.info(`Auto-detected available web port: ${webPort}`);
       }
+
+      // daemon 通常以 detached + stdio:'ignore' 启动，输出全部丢弃；先开启文件日志再初始化，
+      // 后续所有启动/运行日志都有据可查
+      const daemonLogFile = startDaemonFileLogging(this.mcpdogDir);
+      CLIUtils.info(`Daemon log file: ${daemonLogFile}`);
 
       const daemon = new MCPDogDaemon({
         configPath: this.configManager.getConfigPath(),

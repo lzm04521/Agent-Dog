@@ -14,6 +14,7 @@ export class ConfigManager extends EventEmitter {
   private configPath: string;
   private autoCreateConfig: boolean;
   private watchAbortController?: AbortController;
+  private watchDebounceTimer?: NodeJS.Timeout;
   private autoConfigGenerator: AutoConfigGenerator;
   private protocolDetector: ProtocolDetector;
 
@@ -344,18 +345,21 @@ export class ConfigManager extends EventEmitter {
     }
 
     this.watchAbortController = new AbortController();
-    
+
     try {
       const watcher = fs.watch(this.configPath, { signal: this.watchAbortController.signal });
-      
+
       for await (const event of watcher) {
-        if (event.eventType === 'change') {
-          try {
-            await this.loadConfig();
-            this.emit('configChanged', this.config);
-          } catch (error) {
-            this.emit('configError', error);
+        // 编辑器/sed 等以"临时文件+rename"方式保存时触发 rename 而非 change，两种都要处理
+        if (event.eventType === 'change' || event.eventType === 'rename') {
+          // 一次保存常触发多次 change 事件，防抖合并后再重载，避免连续多轮全量重连
+          if (this.watchDebounceTimer) {
+            clearTimeout(this.watchDebounceTimer);
           }
+          this.watchDebounceTimer = setTimeout(() => {
+            this.watchDebounceTimer = undefined;
+            void this.reloadAndNotifyConfig();
+          }, 300);
         }
       }
     } catch (error) {
@@ -366,12 +370,34 @@ export class ConfigManager extends EventEmitter {
   }
 
   /**
+   * Reload config from disk and notify listeners.
+   * 事件名必须与 MCPDogServer / MCPDogDaemon 的监听一致（'config-updated'），
+   * 否则文件级配置变更永远不会触发重载。
+   */
+  private async reloadAndNotifyConfig(): Promise<void> {
+    try {
+      // rename 事件可能对应文件被删除或替换瞬间，文件不存在时保留现有配置、不广播
+      if (!fsSync.existsSync(this.configPath)) {
+        return;
+      }
+      await this.loadConfig();
+      this.emit('config-updated', { config: this.config });
+    } catch (error) {
+      this.emit('configError', error);
+    }
+  }
+
+  /**
    * Stop watching config file
    */
   stopWatching(): void {
     if (this.watchAbortController) {
       this.watchAbortController.abort();
       this.watchAbortController = undefined;
+    }
+    if (this.watchDebounceTimer) {
+      clearTimeout(this.watchDebounceTimer);
+      this.watchDebounceTimer = undefined;
     }
   }
 

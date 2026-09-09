@@ -2,6 +2,15 @@
 
 本项目所有显著变更都会记录在此文件中。
 
+## [1.0.7] - 2026-09-09
+
+- **修复（关键）**：直接编辑 `~/.mcpdog/mcpdog.config.json` 后 daemon 永不重载。配置文件 watch 曾发出 `configChanged` 事件，而 daemon / 核心服务监听的是 `config-updated`（该事件此前从未被发出），事件名不匹配导致文件级配置变更被静默忽略。现统一为 `config-updated`，并处理编辑器常用的"临时文件 + rename"式保存（此前仅响应 change 事件），加 300ms 防抖合并同一次保存的多次变更事件。
+- **修复**：`MCPDogServer.stop()` 未重置 `isStarted` 防重入标记，stop→start 序列中 start 被跳过，所有适配器断开后无人重连，daemon 瘫痪。
+- **优化**：`tools/list` 实时拉取由串行改为并行（`Promise.allSettled`，单 server 仍保留 8 秒超时上限）。总耗时由各 server 超时之和降为最大单值，多个下游同时异常时不再累计突破 MCP 客户端 30 秒连接超时。
+- **新增**：daemon 启动即把 stdout/stderr 同步落盘到 `~/.mcpdog/daemon-YYYYMMDD.log`。daemon 通常以 detached + stdio ignore 方式拉起，此前运行日志全部丢弃，排障无据可查。
+- **优化**：配置全量重载统一由 `MCPDogServer` 的 reinitializeAdapters 执行（增量重建 + 后台连接），移除 daemon 层重复的 stop/start 全量重建路径，避免适配器被拆除重建两次。
+- Web 管理界面 favicon 更换为 🐕。
+
 ## [1.0.6] - 2026-09-05
 
 - **新增**：`mcpdog service install/uninstall/status` 命令，一键注册/取消 daemon 开机自启（Windows 启动文件夹 VBS 隐藏窗口启动、macOS LaunchAgent、Linux systemd user unit），使 38881 dashboard 与 IPC 9999 的生命周期与 MCP 会话彻底解耦——重启电脑后不再需要新开会话才能访问管理界面。
