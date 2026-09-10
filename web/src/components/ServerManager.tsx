@@ -1,10 +1,10 @@
 import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Copy, Settings, LogOut, Download } from 'lucide-react';
 import { useConfigStore } from '../store/configStore';
 import { useAppStore } from '../store/useAppStore';
 import { ServerListItem } from './ServerListItem';
 import { ServerPanel } from './ServerPanel';
-import { AddServerModal } from './AddServerModal';
 import { ClientConfigModal } from './ClientConfigModal';
 import { ClaudeImportModal } from './ClaudeImportModal';
 import { ServerStatus } from '../types/index';
@@ -15,16 +15,15 @@ interface ServerManagerProps {
 }
 
 export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools, onLogout }) => {
+  const navigate = useNavigate();
   const {
     servers: configuredServers,
     selectedServer,
     setSelectedServer,
     loading,
     error,
-    showAddServer,
     showClientConfig,
     showClaudeImport,
-    showAddServerModal,
     showClientConfigModal,
     showClaudeImportModal,
     loadConfig,
@@ -128,7 +127,7 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
             </button>
 
             <button
-              onClick={showAddServer}
+              onClick={() => navigate('/mcp/add')}
               className="btn btn-primary btn-sm flex items-center space-x-2"
             >
               <Plus className="h-4 w-4" />
@@ -153,7 +152,7 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
                 <p className="mb-2">还没有配置服务器</p>
                 <p className="text-sm mb-4">添加你的第一个 MCP 服务器开始使用</p>
                 <button
-                  onClick={showAddServer}
+                  onClick={() => navigate('/mcp/add')}
                   className="btn btn-primary btn-sm"
                 >
                   添加服务器
@@ -191,7 +190,7 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
                 {mergedServers.length === 0 && (
                   <div className="mt-8">
                     <button
-                      onClick={showAddServer}
+                      onClick={() => navigate('/mcp/add')}
                       className="btn btn-primary"
                     >
                       添加服务器
@@ -205,7 +204,6 @@ export const ServerManager: React.FC<ServerManagerProps> = ({ refreshServerTools
       </div>
 
       {/* Modal windows */}
-      {showAddServerModal && <AddServerModal />}
       {showClientConfigModal && <ClientConfigModal />}
       {showClaudeImportModal && <ClaudeImportModal />}
     </div>

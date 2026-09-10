@@ -18,7 +18,6 @@ interface ConfigState {
   authToken: string | null;
   
   // Modal states
-  showAddServerModal: boolean;
   showClientConfigModal: boolean;
   showClaudeImportModal: boolean;
   
@@ -34,8 +33,6 @@ interface ConfigState {
   
   // UI Actions
   setSelectedServer: (serverName: string | null) => void;
-  showAddServer: () => void;
-  hideAddServer: () => void;
   showClientConfig: () => void;
   hideClientConfig: () => void;
   showClaudeImport: () => void;
@@ -64,7 +61,6 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   error: null,
   authRequired: false,
   authToken: null,
-  showAddServerModal: false,
   showClientConfigModal: false,
   showClaudeImportModal: false,
 
@@ -237,8 +233,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
           enabledToolCount: 0,
           tools: []
         }],
-        saving: false,
-        showAddServerModal: false
+        saving: false
       }));
       
       console.log('[ConfigStore] Server added to local state.');
@@ -318,14 +313,6 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     set({ selectedServer: serverName });
   },
 
-  showAddServer: () => {
-    console.log('[ConfigStore] Showing add server modal.');
-    set({ showAddServerModal: true });
-  },
-  hideAddServer: () => {
-    console.log('[ConfigStore] Hiding add server modal.');
-    set({ showAddServerModal: false });
-  },
   showClientConfig: () => {
     console.log('[ConfigStore] Showing client config modal.');
     set({ showClientConfigModal: true });

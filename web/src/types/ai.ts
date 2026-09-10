@@ -10,7 +10,9 @@ export interface AIProvider {
   baseUrl: string;
   apiKey: string; // 列表返回已脱敏（仅末 4 位）
   enabled: boolean;
-  models?: string[];
+  models?: string[]; // 已知模型全集（拉取/手工维护，服务端自动入库）
+  disabledModels?: string[]; // 取消勾选的模型：网关拒绝对外服务，即时生效
+  autoFetchModels?: boolean; // 页面加载时自动拉取上游模型并入库
   headers?: Record<string, string>;
 }
 

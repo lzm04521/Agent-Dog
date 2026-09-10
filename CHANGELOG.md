@@ -2,7 +2,7 @@
 
 本项目所有显著变更都会记录在此文件中。
 
-## [未发布] - 2026-09-10
+## [1.3.1] - 2026-09-10
 
 - **同步（上游合并）**：合并上游 `SIE-Operations-and-Maintenance-Team/mcpdog`（@keysqiu/mcpdog 1.0.6~1.0.8）以下变更，并适配 AgentDog 单 Web 端口架构：
   - **新增**：Web 管理界面一键导入 Claude MCP——读取 `~/.claude.json` 顶层用户级 `mcpServers` 批量导入（先预览将导入/将跳过清单再确认；同名冲突、名称不合规或缺 `command`/`url` 的条目跳过并注明原因；`disabled` 条目按禁用状态导入；导入成功的启用服务器自动连接）。读取与转换在 daemon 本机完成，导入逻辑抽离为纯函数模块 `claude-mcp-importer` 并补齐单测。
@@ -14,6 +14,21 @@
   - **优化**：配置全量重载统一由核心服务 `reinitializeAdapters` 执行（增量重建 + 后台连接），移除 daemon 层重复的 stop/start 全量重建路径。
   - Web 管理界面 favicon 更换为 🐕。
 - **未采纳（上游 1.0.6）**：`mcpdog service install/uninstall/status` 命令未合入——本地已有等价实现 `agentdog daemon autostart --enable/--disable`（AgentDog 更名后的自启体系），避免两套并存。
+
+## [1.3.0] - 2026-09-08
+
+- **新增（Web 界面）**：侧边栏改为双层菜单——控制台（单页直达）、MCP 服务器（服务器管理 / 日志）、AI 供应商（供应商管理 / 调用日志）三大主菜单，手风琴式交互（当前路由分组自动展开，点组头收起/展开并直达默认页，窄屏为底部图标导航 + 当前分组二级横排）。原一级 `/logs` 全局日志页迁入 MCP 服务器分组为 `/mcp/logs` 并更名"MCP 日志"（旧地址重定向保留）。
+- **新增（AI API 网关）**：AI 供应商下新增"调用日志"页（`/providers/logs`）——网关转发请求流水（时间/入口方言/供应商与模型/HTTP 状态/耗时/token 用量），失败请求可展开查看错误摘要、请求结构摘要与上游响应正文前 500 字符；支持按供应商/状态/入口方言筛选。数据经 socket `ai-log` 实时推送，`GET /api/ai-logs` 恢复历史。埋点覆盖 anthropic/openai 两入口的 messages 与 count_tokens，流式响应从 SSE 尾帧解析 usage；不记录 apiKey、请求头与请求正文（防截图 base64 撑爆日志）。
+- **新增（日志持久化）**：MCP 日志与 AI 调用日志落盘 `~/.agentdog/logs/`（`mcp.jsonl` / `ai-calls.jsonl`，共享 JSONL 存储模块：内存环形缓冲 500/200 条 + 5MB 轮转 + 启动读尾部，daemon 重启后 Web 页面可恢复历史）。MCP 侧记录子服务器输出/连接事件与 tool-called 工具调用（不记 args/result 正文）；MCP 日志页新增首屏历史恢复（`GET /api/mcp-logs`）。测试可用 `AGENTDOG_LOG_DIR` 环境变量隔离日志目录。
+- **新增（AI API 网关）**：OpenAI 入口方言上线——`POST /openai/v1/chat/completions` 全量实现（原 501 占位移除），Cherry Studio / Cline / OpenAI SDK 等 OpenAI 兼容客户端 base URL 指向 `<Web端口>/openai/v1` 即可统一接入任意上游：openai 上游字节级直通（`reasoning_effort` / `response_format` 等原生字段零损耗），anthropic / gemini 上游经 IR 双向转换（工具调用、图片、system、采样参数全映射）。`/openai` 路径的错误（401/503/413 等）改为 OpenAI 格式错误体；`n>1` 请求显式 400。
+- **新增（AI API 网关）**：双协议模型列表端点 `GET /anthropic/v1/models`（含裸 `/v1/models` 别名）与 `GET /openai/v1/models`——返回 `slug:modelId` 形式的可用模型（启用供应商的模型全集减去已停用模型），供客户端模型发现；分页参数不模拟、全量返回。
+- **调整（Web 界面）**：网关配置信息弹窗中 OpenAI 网关地址去除"规划中"标注，开放复制并补充 OpenAI 兼容客户端接入提示。
+- **调整（对外约定）**：AI API 网关端口并入 daemon Web 管理端口（默认 61125）——方言路由挂载在 Web 服务上，`http://localhost:61125/anthropic` 即网关地址，**原独立端口 62125 不再监听**，已接入客户端（Claude Code 等）需将 base URL 从 62125 换为 Web 端口。Web 服务未启动的回退形态下网关仍独立监听 `aiGateway.port`（`--gateway-port` 仅作用于该回退）。网关开关/apiKey 改为请求时实时读配置，修改即时生效；网关路径持 apiKey 认证、不受 Web 登录 token 与全局 body 限制影响（自带 32MB 解析）。
+- **新增（AI API 网关）**：对外路由增加方言前缀层，同端口按路径区分协议——`POST /anthropic/v1/messages`、`POST /anthropic/v1/messages/count_tokens` 为正式端点；`/openai/v1/chat/completions`、`/openai/v1/models` 路由预留（返回 501 + OpenAI 风格错误体）。裸 `/v1/messages` 与 `/v1/messages/count_tokens` 保留为 Anthropic 向后兼容别名（同一 handler），已接入客户端零感知。
+- **调整（Web 界面）**："AI API 网关"设置行重排——网关开关移至监听信息之前（紧跟标题徽章），行内不再展示监听地址与 apiKey；新增"配置信息"按钮（网关开启时显示），弹窗集中展示 apiKey（复制/重置）、Anthropic/OpenAI 网关地址（OpenAI 标注规划中）、监听地址、运行状态与模型寻址格式。
+- **调整（Web 界面）**：内容区去除 1600px 最大宽度，撑满侧边栏右侧全部空间；导航与页标题"Dashboard"更名"控制台"（路由 `/dashboard` 不变）。
+- **重构（Web 界面）**："添加 MCP 服务器"由弹窗改为独立页面 `/mcp/add`（表单与 JSON 双模式保留；表单模式传输协议改为三卡片选择、基本信息/连接配置/高级选项分区布局、底部粘性操作条）；新增编辑复用入口 `?name=` 预填保存（走 `PUT /api/servers/:name`）。原 `AddServerModal` 删除，`configStore` 的 add-server 弹窗状态同步清理。
+- **重构（Web 界面）**："AI 供应商"页改为与 MCP 页一致的「上状态（统计 + 网关设置）+ 左供应商列表 + 右详情」布局，默认选中首个供应商；模型管理由弹窗（ModelsPanel）改为详情面板内嵌区块（ModelsSection），删除原弹窗及 providerStore 的 `modelsPanelProviderId` 状态。
 
 ## [1.2.0] - 2026-09-07
 

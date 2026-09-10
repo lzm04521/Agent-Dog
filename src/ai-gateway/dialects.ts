@@ -2,6 +2,7 @@
 import { DialectCodec } from './ir-channel.js';
 import { irToOpenAI, OpenAIStreamState, openaiSSELineToEvents, openaiFinalToIREvents } from './ir/openai-out.js';
 import { irToGemini, GeminiStreamState, geminiSSELineToEvents, geminiFinalToIREvents } from './ir/gemini-out.js';
+import { irToAnthropic, AnthropicStreamState, anthropicSSELineToEvents, anthropicFinalToIREvents } from './ir/anthropic-out.js';
 
 export const openaiCodec: DialectCodec = {
   buildRequest: irToOpenAI,
@@ -15,4 +16,11 @@ export const geminiCodec: DialectCodec = {
   parseSSELine: geminiSSELineToEvents,
   createState: () => new GeminiStreamState(),
   parseFinal: geminiFinalToIREvents,
+};
+
+export const anthropicCodec: DialectCodec = {
+  buildRequest: irToAnthropic,
+  parseSSELine: anthropicSSELineToEvents,
+  createState: () => new AnthropicStreamState(),
+  parseFinal: anthropicFinalToIREvents,
 };

@@ -7,11 +7,12 @@ import { useConfigStore } from '../store/configStore';
 export const useWebSocket = (url: string) => {
   const socketRef = useRef<Socket | null>(null);
   const addServerLogRef = useRef<((log: any) => void) | null>(null);
-  const { 
-    setConnected, 
-    setSystemStatus, 
+  const {
+    setConnected,
+    setSystemStatus,
     addEvent,
-    addServerLog
+    addServerLog,
+    addAiLog
   } = useAppStore();
   
   const { loadConfig } = useConfigStore();
@@ -267,6 +268,11 @@ export const useWebSocket = (url: string) => {
       }
     });
 
+    // AI 调用流水：网关每次转发请求落一条（调用日志页实时增量）
+    socket.on('ai-log', (data) => {
+      addAiLog(data);
+    });
+
     // 处理增强的日志事件
     socket.on('enhanced-log-added', (data) => {
       console.log('[WebSocket] Enhanced log received:', data);
@@ -308,7 +314,7 @@ export const useWebSocket = (url: string) => {
         socket.disconnect();
       }
     };
-  }, [url, setConnected, setSystemStatus, addEvent, loadConfig]);
+  }, [url, setConnected, setSystemStatus, addEvent, addAiLog, loadConfig]);
 
   // 添加手动刷新工具列表的方法
   const refreshServerTools = (serverName?: string) => {

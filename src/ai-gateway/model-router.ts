@@ -40,5 +40,11 @@ export function resolveModel(model: string, providers: AIProviderConfig[]): Reso
   if (!realModel) {
     throw new ModelRouteError(`invalid model "${model}": empty model id after slug`, availableSlugs);
   }
+  if (provider.disabledModels?.includes(realModel)) {
+    throw new ModelRouteError(
+      `model "${model}" is disabled for provider "${slug}" (unchecked in model management)`,
+      availableSlugs
+    );
+  }
   return { provider, model: realModel };
 }

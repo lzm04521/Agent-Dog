@@ -77,7 +77,9 @@ export interface AIProviderConfig {
   baseUrl: string;                             // 如 https://api.deepseek.com
   apiKey: string;                              // 上游密钥
   enabled: boolean;
-  models?: string[];                           // 手工声明的模型（拉取失败时兜底）
+  models?: string[];                           // 已知模型全集（拉取/手工维护，自动持久化）
+  disabledModels?: string[];                   // 取消勾选的模型：网关拒绝对外服务，即时生效
+  autoFetchModels?: boolean;                   // 界面加载时自动拉取上游模型并入库
   headers?: Record<string, string>;            // 附加上游请求头
 }
 
@@ -86,6 +88,23 @@ export interface AIGatewayConfig {
   port: number;          // 默认 62125
   host: string;          // 默认 127.0.0.1
   apiKey: string;        // 对外 key，"ad-sk-<uuid>"
+}
+
+// AI 网关单次转发请求流水（调用日志页数据源，JSONL 落盘 ~/.agentdog/logs/ai-calls.jsonl）
+export interface AiCallLog {
+  id: string;                       // randomUUID
+  timestamp: string;                // ISO 时间（请求进入时刻）
+  ingress: 'anthropic' | 'openai';  // 入口方言（裸 /v1/* 别名归 anthropic）
+  path: string;                     // 完整请求路径（区分 messages / count_tokens）
+  model: string;                    // 客户端请求的原始 model（slug:model）
+  providerName: string;             // 命中供应商 slug（路由失败为空）
+  upstreamModel: string;            // 剥离 slug 后的上游模型名
+  status: number;                   // 返回给客户端的 HTTP 状态码
+  durationMs: number;               // 请求进入 → 响应结束
+  usage?: { inputTokens?: number; outputTokens?: number };
+  error?: string;                   // 失败摘要
+  requestExcerpt?: string;          // 失败时请求结构摘要（不含正文，防 base64 撑爆）
+  responseExcerpt?: string;         // 失败时上游响应正文前 500 字符
 }
 
 export interface MCPTool {

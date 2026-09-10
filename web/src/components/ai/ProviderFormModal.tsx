@@ -12,6 +12,7 @@ interface FormData {
   baseUrl: string;
   apiKey: string;
   enabled: boolean;
+  autoFetchModels: boolean; // 打开管理页时自动拉取上游模型并入库
   headersText: string; // JSON 文本编辑
 }
 
@@ -27,6 +28,7 @@ export const ProviderFormModal: React.FC = () => {
     baseUrl: editingProvider?.baseUrl || '',
     apiKey: '', // 编辑时不回显完整值，留空 = 不改
     enabled: editingProvider?.enabled ?? true,
+    autoFetchModels: editingProvider?.autoFetchModels ?? true,
     headersText: editingProvider?.headers ? JSON.stringify(editingProvider.headers, null, 2) : '',
   }));
   const [submitting, setSubmitting] = useState(false);
@@ -60,14 +62,27 @@ export const ProviderFormModal: React.FC = () => {
         await updateProvider(editingProvider.id, {
           slug: form.slug, name: form.name || undefined, dialect: form.dialect,
           baseUrl: form.baseUrl, ...(form.apiKey ? { apiKey: form.apiKey } : {}),
-          enabled: form.enabled, ...(headers !== undefined ? { headers } : {}),
+          enabled: form.enabled, autoFetchModels: form.autoFetchModels,
+          ...(headers !== undefined ? { headers } : {}),
         });
       } else {
         await addProvider({
           slug: form.slug, name: form.name || undefined, dialect: form.dialect,
           baseUrl: form.baseUrl, apiKey: form.apiKey, enabled: form.enabled,
+          autoFetchModels: form.autoFetchModels,
           ...(headers !== undefined ? { headers } : {}),
         });
+      }
+      // 开启自动拉取时，保存后立即拉取一次上游模型入库
+      if (form.autoFetchModels) {
+        try {
+          const created = useProviderStore.getState().providers.find(p => p.slug === form.slug);
+          if (created) {
+            await useProviderStore.getState().fetchModels(created.id, form.apiKey || undefined);
+          }
+        } catch {
+          // 拉取失败不打断保存流程，用户可稍后手动拉取
+        }
       }
       setShowProviderModal(false);
     } catch (error) {
@@ -147,6 +162,10 @@ export const ProviderFormModal: React.FC = () => {
             <label className="label cursor-pointer justify-start gap-3 py-1">
               <input type="checkbox" className="toggle toggle-sm toggle-primary" checked={form.enabled} onChange={e => setForm({ ...form, enabled: e.target.checked })} />
               <span className="label-text">启用</span>
+            </label>
+            <label className="label cursor-pointer justify-start gap-3 py-1">
+              <input type="checkbox" className="toggle toggle-sm toggle-primary" checked={form.autoFetchModels} onChange={e => setForm({ ...form, autoFetchModels: e.target.checked })} />
+              <span className="label-text">自动拉取上游模型<span className="label-text-alt text-base-content/50 ml-1">（打开管理页时自动获取并保存）</span></span>
             </label>
           </div>
 

@@ -1,16 +1,47 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useConfigStore } from '../store/configStore';
+import { apiClient } from '../utils/api';
 
-// 全局日志页：聚合实时事件流 + 各服务器日志，按服务器筛选、暂停滚动、清空
-// 数据来自 useAppStore（socket 推送），不额外请求后端
+// MCP 日志页：聚合实时事件流 + 各服务器日志，按服务器筛选、暂停滚动
+// 实时数据来自 useAppStore（socket 推送）；首屏经 /api/mcp-logs 恢复落盘历史
 export const LogsPage: React.FC = () => {
-  const { events, serverLogs } = useAppStore();
+  const { events, serverLogs, addServerLog, addEvent } = useAppStore();
   const servers = useConfigStore((s) => s.servers);
   const [serverFilter, setServerFilter] = useState<string>('all');
   const [paused, setPaused] = useState(false);
   const [autoScroll, setAutoScroll] = useState(true);
   const terminalRef = useRef<HTMLDivElement>(null);
+
+  // 首屏恢复 JSONL 落盘的历史时间线（本地已有数据则跳过，避免路由往返重复填充）
+  useEffect(() => {
+    if (events.length > 0 || Object.keys(serverLogs).length > 0) {
+      return;
+    }
+    apiClient
+      .get('/api/mcp-logs?limit=500')
+      .then((rows: any[]) => {
+        for (const row of rows) {
+          if (row.kind === 'server-log') {
+            addServerLog({
+              serverName: row.serverName,
+              stream: row.source || 'system',
+              data: `[${String(row.level || 'info').toUpperCase()}] ${row.message}`,
+              timestamp: row.timestamp,
+            });
+          } else if (row.kind === 'tool-called') {
+            addEvent({
+              type: 'tool-called',
+              data: { serverName: row.serverName, toolName: row.toolName, duration: row.durationMs },
+              timestamp: row.timestamp,
+            });
+          }
+        }
+      })
+      .catch(() => {
+        // 历史拉取失败不影响实时流
+      });
+  }, []);
 
   // 统一日志行：事件流与服务器日志合并为单条流（时间倒序展示最新在上）
   const lines = useMemo(() => {
@@ -51,8 +82,8 @@ export const LogsPage: React.FC = () => {
   return (
     <div className="flex flex-col gap-4 lg:gap-6">
       <div className="flex items-baseline gap-3 flex-wrap">
-        <h1 className="text-xl font-bold">全局日志</h1>
-        <span className="text-xs text-base-content/50">实时事件与服务器输出（最近 100 条）</span>
+        <h1 className="text-xl font-bold">MCP 日志</h1>
+        <span className="text-xs text-base-content/50">实时事件与服务器输出（最近 100 条，重启后可恢复历史）</span>
       </div>
 
       {/* 工具栏：服务器筛选 + 暂停 + 自动滚动 */}

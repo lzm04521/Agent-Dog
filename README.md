@@ -161,16 +161,16 @@ agentdog diagnose --fix            # 自动修复常见问题
 
 ## 🤖 AI API 网关
 
-daemon 内置 AI API 网关：对外提供 Anthropic Messages 兼容端点，Claude Code 统一接入任意供应商（openai 兼容 / anthropic / gemini）。
+daemon 内置 AI API 网关：对外提供 Anthropic Messages 兼容端点，Claude Code 统一接入任意供应商（openai 兼容 / anthropic / gemini）；同时提供 OpenAI Chat Completions 兼容入口 `/openai/v1/chat/completions`（base URL 指向 `<host>:<port>/openai/v1`），OpenAI 协议客户端同样按 `slug:modelId` 寻址。
 
 ```bash
-agentdog daemon start --gateway-port 62125   # 启用并持久化网关端口
+agentdog daemon start --web-port 61125   # 网关与 Web 管理界面同端口（方言前缀路由）
 ```
 
 在 Web 界面"AI 供应商"视图配置供应商（slug、方言、Base URL、API Key），然后：
 
 ```bash
-export ANTHROPIC_BASE_URL=http://127.0.0.1:62125
+export ANTHROPIC_BASE_URL=http://127.0.0.1:61125/anthropic
 export ANTHROPIC_API_KEY=<网关 apiKey，界面可复制>
 export ANTHROPIC_MODEL=deepseek:deepseek-chat   # 格式：供应商slug:模型Id
 export ANTHROPIC_SMALL_FAST_MODEL=deepseek:deepseek-chat
@@ -179,8 +179,9 @@ export ANTHROPIC_SMALL_FAST_MODEL=deepseek:deepseek-chat
 - **寻址**：模型名按第一个 `:` 分割，前段命中供应商 slug，后段为上游真实模型名原样透传；未命中返回 400 并列出可用 slug。
 - **anthropic 上游直通**：请求字节级转发，`cache_control`、`thinking`、prompt cache 计费字段零损耗；`count_tokens` 直通真值（openai/gemini 上游本地估算）。
 - **openai / gemini 转换**：工具调用、图片、system、tool_choice、采样参数经统一 IR 双向映射；流式 SSE 双向转换（延迟提交、ping 保活、断连 abort 链），上游错误状态码透传（message 保留原文，便于诊断中转站差异）。
+- **模型列表端点**：`GET /anthropic/v1/models`（含裸 `/v1/models` 别名）与 `GET /openai/v1/models`，返回 `slug:modelId` 形式的可用模型，供客户端模型自动发现。
 - **Provider 管理面**：`/api/ai-gateway/*` 与 `/api/ai-providers` REST 接口（CRUD / 连通测试 / 模型拉取），apiKey 脱敏返回；对外 key 以 `ad-sk-` 前缀在首次启用时自动生成。配置文件新增可选段 `aiGateway` / `providers`，老配置无此段 = 网关关闭。
-- **已知限制**：gemini 同名函数多调用的 `tool_result` 配对存在歧义；openai 兼容端点（DeepSeek / OpenRouter / 中转站）各有出入，不做静默兼容。
+- **已知限制**：gemini 同名函数多调用的 `tool_result` 配对存在歧义；openai 兼容端点（DeepSeek / OpenRouter / 中转站）各有出入，不做静默兼容；OpenAI 入口不支持 `n>1`（返回 400），openai 入口到 anthropic/gemini 上游时 IR 无法承载的参数（`response_format` / `logprobs` / `reasoning_effort` 等）直接丢弃（openai 上游走直通不受影响）；anthropic 上游 thinking 期间 OpenAI 出口静默（SSE 无 ping 约定）；`/v1/models` 不支持分页参数，`created` 为占位值。穿插对话中间的 `system` 消息统一并入开头系统提示；`count_tokens` 无 OpenAI 入口端点（协议本身没有）。
 
 ## 🧩 子服务器配置示例
 

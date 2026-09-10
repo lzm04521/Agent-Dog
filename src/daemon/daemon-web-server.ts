@@ -13,7 +13,7 @@ import { homedir } from 'os';
 import { fileURLToPath } from 'url';
 import { AgentDogDaemon } from './agentdog-daemon.js';
 import { ConfigManager } from '../config/config-manager.js';
-import { globalLogManager } from '../logging/server-log-manager.js';
+import { globalLogManager, getMcpLogStore } from '../logging/server-log-manager.js';
 import { ServerNameValidator } from '../utils/server-name-validator.js';
 import { parseClaudeJson, buildImportPlan, ClaudeMCPEntry } from '../utils/claude-mcp-importer.js';
 import { createExpressAuthMiddleware } from '../middleware/auth.js';
@@ -21,6 +21,8 @@ import { randomUUID } from 'crypto';
 import { AIProviderConfig } from '../types/index.js';
 import { isValidProviderSlug } from '../config/config-manager.js';
 import { listUpstreamModels } from '../ai-gateway/upstream/model-lister.js';
+import { createGatewayRouter } from '../ai-gateway/gateway-server.js';
+import { getAiCallStore } from '../ai-gateway/call-log.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,7 +74,12 @@ export class DaemonWebServer {
   private setupMiddleware() {
     // CORS support
     this.app.use(cors());
-    
+
+    // AI 网关方言路由（/anthropic、/openai 前缀）挂在 Web 端口上。
+    // 必须在全局 JSON 解析与登录认证之前：网关路径需要 32MB body 限制，
+    // 且网关客户端持 apiKey 而非 Web 登录 token；非网关路径被 router 内部放行，互不影响。
+    this.app.use(createGatewayRouter(this.configManager));
+
     // JSON parsing
     this.app.use(express.json());
     
@@ -191,7 +198,11 @@ export class DaemonWebServer {
     router.get('/logs/:serverName', this.handleGetServerLogs.bind(this));
     router.delete('/logs/:serverName', this.handleClearServerLogs.bind(this));
     router.get('/logs/:serverName/stats', this.handleGetServerLogStats.bind(this));
-    
+
+    // Timeline logs (JSONL persisted): MCP 日志历史 + AI 调用流水
+    router.get('/mcp-logs', this.handleGetMcpLogs.bind(this));
+    router.get('/ai-logs', this.handleGetAiLogs.bind(this));
+
     return router;
   }
 
@@ -335,12 +346,26 @@ export class DaemonWebServer {
     });
 
     this.daemon.on('tool-called', (data) => {
+      // 工具调用事件落盘到 MCP 时间线（不记 args/result 正文，可能含截图 base64）
+      getMcpLogStore().append({
+        kind: 'tool-called',
+        timestamp: new Date().toISOString(),
+        serverName: data.serverName,
+        toolName: data.toolName,
+        durationMs: data.duration,
+        isError: Boolean((data.result as { isError?: boolean } | undefined)?.isError),
+      });
       this.io.emit('tool-called', {
         serverName: data.serverName,
         toolName: data.toolName,
         duration: data.duration,
         timestamp: new Date().toISOString()
       });
+    });
+
+    // AI 调用流水：网关埋点落一条 → 实时推送给调用日志页
+    getAiCallStore().on('append', (entry) => {
+      this.io.emit('ai-log', entry);
     });
 
     this.daemon.on('error', (data) => {
@@ -583,16 +608,30 @@ export class DaemonWebServer {
 
   private async handleGetAiGatewayStatus(req: express.Request, res: express.Response) {
     const cfg = this.configManager.getAIGatewayConfig();
-    const gateway = this.daemon.getAiGateway?.();
+    const providers = this.configManager.getAIProviders().map(p => ({
+      id: p.id, slug: p.slug, dialect: p.dialect, enabled: p.enabled,
+    }));
+    const standalone = this.daemon.getAiGateway?.();
+    if (standalone) {
+      // 回退形态：Web 服务未启动，网关独立监听 aiGateway.port
+      res.json({
+        running: standalone.isRunning(),
+        enabled: cfg?.enabled ?? false,
+        port: cfg?.port ?? 62125,
+        host: cfg?.host ?? '127.0.0.1',
+        apiKey: cfg?.apiKey ?? '',
+        providers,
+      });
+      return;
+    }
+    // 常态：方言路由挂载在 Web 端口上，客户端地址即 Web 管理界面地址
     res.json({
-      running: gateway?.isRunning() ?? false,
+      running: !!this.server?.listening && (cfg?.enabled ?? false),
       enabled: cfg?.enabled ?? false,
-      port: cfg?.port ?? 62125,
-      host: cfg?.host ?? '127.0.0.1',
+      port: this.port,
+      host: this.host ?? 'localhost',
       apiKey: cfg?.apiKey ?? '',
-      providers: this.configManager.getAIProviders().map(p => ({
-        id: p.id, slug: p.slug, dialect: p.dialect, enabled: p.enabled,
-      })),
+      providers,
     });
   }
 
@@ -643,7 +682,7 @@ export class DaemonWebServer {
   }
 
   private async handleAddAiProvider(req: express.Request, res: express.Response) {
-    const { slug, name, dialect, baseUrl, apiKey, enabled, models, headers } = req.body || {};
+    const { slug, name, dialect, baseUrl, apiKey, enabled, models, disabledModels, autoFetchModels, headers } = req.body || {};
     if (!slug || !dialect || !baseUrl || !apiKey) {
       res.status(400).json({ error: 'slug, dialect, baseUrl, apiKey 为必填项' });
       return;
@@ -658,7 +697,7 @@ export class DaemonWebServer {
     }
     const provider: AIProviderConfig = {
       id: randomUUID(), slug, name, dialect, baseUrl, apiKey,
-      enabled: enabled !== false, models, headers,
+      enabled: enabled !== false, models, disabledModels, autoFetchModels, headers,
     };
     if (!this.configManager.addAIProvider(provider)) {
       res.status(400).json({ error: `slug "${slug}" 已存在或格式非法` });
@@ -712,7 +751,13 @@ export class DaemonWebServer {
       res.status(502).json({ error: '拉取上游模型列表失败', message: result.message, status: result.status });
       return;
     }
-    res.json({ models: result.models });
+    // 拉取即入库：合并上游列表到已知模型全集（保留原顺序、新增追加），
+    // 已取消勾选的保持禁用态；上游已下线的模型顺带清出禁用列表
+    const known = provider.models || [];
+    const merged = [...known.filter(m => result.models.includes(m)), ...result.models.filter(m => !known.includes(m))];
+    const disabled = (provider.disabledModels || []).filter(m => merged.includes(m));
+    this.configManager.updateAIProvider(provider.id, { models: merged, disabledModels: disabled });
+    res.json({ models: merged, saved: true, added: result.models.filter(m => !known.includes(m)).length });
   }
 
   // WebSocket helper methods
@@ -1446,6 +1491,36 @@ export class DaemonWebServer {
     } catch (error) {
       res.status(500).json({
         error: '获取服务器日志统计失败',
+        message: (error as Error).message
+      });
+    }
+  }
+
+  // MCP 时间线历史（mcp.jsonl 尾部，时间正序）：MCP 日志页首屏恢复用
+  private async handleGetMcpLogs(req: express.Request, res: express.Response) {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 500, 500);
+      const store = getMcpLogStore();
+      await store.ready();
+      res.json(store.recent(limit));
+    } catch (error) {
+      res.status(500).json({
+        error: '获取 MCP 日志历史失败',
+        message: (error as Error).message
+      });
+    }
+  }
+
+  // AI 调用流水（ai-calls.jsonl 尾部，最新在前）：调用日志页首屏恢复用
+  private async handleGetAiLogs(req: express.Request, res: express.Response) {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 200, 200);
+      const store = getAiCallStore();
+      await store.ready();
+      res.json((store.recent(limit) as Record<string, unknown>[]).reverse());
+    } catch (error) {
+      res.status(500).json({
+        error: '获取 AI 调用日志失败',
         message: (error as Error).message
       });
     }

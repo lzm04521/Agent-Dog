@@ -6,9 +6,11 @@ import { apiClient } from './utils/api';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AppLayout } from './components/AppLayout';
 import { McpPage } from './pages/McpPage';
+import { AddServerPage } from './pages/AddServerPage';
 import { ProvidersPage } from './pages/ProvidersPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { LogsPage } from './pages/LogsPage';
+import { AiLogsPage } from './pages/AiLogsPage';
 import type { AppOutletContext } from './outlet-context';
 
 function App() {
@@ -109,8 +111,12 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="mcp" element={<McpPage />} />
+            <Route path="mcp/add" element={<AddServerPage />} />
+            <Route path="mcp/logs" element={<LogsPage />} />
             <Route path="providers" element={<ProvidersPage />} />
-            <Route path="logs" element={<LogsPage />} />
+            <Route path="providers/logs" element={<AiLogsPage />} />
+            {/* 旧版一级 /logs 迁入 MCP 服务器分组，保留重定向防书签失效 */}
+            <Route path="logs" element={<Navigate to="/mcp/logs" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Routes>

@@ -13,7 +13,7 @@ interface ProviderState {
   testingId: string | null;
   showProviderModal: boolean;
   editingProvider: AIProvider | null; // null = 新增
-  modelsPanelProviderId: string | null;
+  selectedProviderId: string | null; // 列表+详情布局的选中供应商
 
   // Actions（一期状态刷新用"操作后重新拉取"，不接 socket.io）
   loadAll: () => Promise<void>;
@@ -27,7 +27,7 @@ interface ProviderState {
 
   // UI Actions
   setShowProviderModal: (show: boolean, editing?: AIProvider | null) => void;
-  setModelsPanelProvider: (id: string | null) => void;
+  setSelectedProvider: (id: string | null) => void;
 }
 
 export const useProviderStore = create<ProviderState>((set, get) => ({
@@ -38,7 +38,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
   testingId: null,
   showProviderModal: false,
   editingProvider: null,
-  modelsPanelProviderId: null,
+  selectedProviderId: null,
 
   loadAll: async () => {
     set({ loading: true, error: null });
@@ -84,6 +84,8 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
 
   fetchModels: async (id, apiKey) => {
     const result = await apiClient.fetchProviderModels(id, apiKey);
+    // 服务端拉取即入库，刷新列表让勾选状态与配置同步
+    await get().loadAll();
     return result.models as string[];
   },
 
@@ -96,7 +98,7 @@ export const useProviderStore = create<ProviderState>((set, get) => ({
     set({ showProviderModal: show, editingProvider: editing });
   },
 
-  setModelsPanelProvider: (id) => {
-    set({ modelsPanelProviderId: id });
+  setSelectedProvider: (id) => {
+    set({ selectedProviderId: id });
   },
 }));

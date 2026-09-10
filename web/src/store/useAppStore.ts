@@ -1,6 +1,8 @@
 import { create } from 'zustand';
-import { AppState, SystemStatus, ToolInfo, RealtimeEvent } from '../types';
+import { AppState, SystemStatus, ToolInfo, RealtimeEvent, AiCallLog } from '../types';
 import { useConfigStore } from './configStore';
+
+const MAX_AI_LOGS = 200;
 
 export const useAppStore = create<AppState>((set, get) => ({
   // Initial state
@@ -12,6 +14,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedTool: null,
 
   serverLogs: {},
+
+  aiLogs: [],
 
   // Operation methods
   setConnected: (connected: boolean) => {
@@ -29,6 +33,15 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       };
     });
+  },
+
+  // AI 调用流水：首屏 REST 批量初始化（最新在前），之后 socket 增量插入头部
+  initAiLogs: (rows: AiCallLog[]) => {
+    set({ aiLogs: rows.slice(0, MAX_AI_LOGS) });
+  },
+
+  addAiLog: (log: AiCallLog) => {
+    set(state => ({ aiLogs: [log, ...state.aiLogs].slice(0, MAX_AI_LOGS) }));
   },
 
   setSystemStatus: (status: SystemStatus) => {

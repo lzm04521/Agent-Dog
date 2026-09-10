@@ -5,7 +5,7 @@ vi.mock('./upstream/provider-client.js', () => ({
   sendUpstream: vi.fn(),
 }));
 import { sendUpstream } from './upstream/provider-client.js';
-import { passthroughMessages } from './passthrough.js';
+import { passthroughMessages, passthroughOpenAI } from './passthrough.js';
 import { AIProviderConfig } from '../types/index.js';
 
 const provider: AIProviderConfig = {
@@ -120,5 +120,76 @@ describe('passthroughMessages', () => {
     const { req, res } = mockReqRes({ model: 'x:y', max_tokens: 1 });
     await passthroughMessages(req, res, { ...provider, headers: { 'x-custom': 'v' } }, 'm');
     expect(vi.mocked(sendUpstream).mock.calls[0]![0].headers['x-custom']).toBe('v');
+  });
+});
+
+const oaProvider: AIProviderConfig = {
+  id: '2', slug: 'deepseek', dialect: 'openai',
+  baseUrl: 'https://api.deepseek.com', apiKey: 'sk-upstream', enabled: true,
+};
+
+describe('passthroughOpenAI', () => {
+  it('转发 body 剥离 slug、Bearer 认证头、URL 为 /v1/chat/completions、保留原生字段', async () => {
+    vi.mocked(sendUpstream).mockResolvedValue({
+      status: 200, headers: { 'content-type': 'application/json' },
+      text: async () => '{"id":"c1"}', stream: async () => {},
+    } as any);
+    const { req, res } = mockReqRes({
+      model: 'deepseek:deepseek-chat',
+      reasoning_effort: 'high',
+      response_format: { type: 'json_object' },
+    });
+    await passthroughOpenAI(req, res, oaProvider, 'deepseek-chat');
+    const call = vi.mocked(sendUpstream).mock.calls[0]!;
+    expect(call[0].url).toBe('https://api.deepseek.com/v1/chat/completions');
+    expect(call[0].headers['authorization']).toBe('Bearer sk-upstream');
+    const sentBody = JSON.parse(call[0].body!);
+    expect(sentBody.model).toBe('deepseek-chat');
+    expect(sentBody.reasoning_effort).toBe('high'); // 原生字段零损耗
+    expect(res.statusCode).toBe(200);
+    expect(res.sentText).toBe('{"id":"c1"}');
+  });
+
+  it('上游错误体原样透传（状态码 + 原生 OpenAI 错误 JSON）', async () => {
+    vi.mocked(sendUpstream).mockResolvedValue({
+      status: 401, headers: { 'content-type': 'application/json' },
+      text: async () => '{"error":{"message":"Incorrect API key","type":"invalid_request_error","code":"invalid_api_key"}}',
+      stream: async () => {},
+    } as any);
+    const { req, res } = mockReqRes({ model: 'deepseek:m' });
+    await passthroughOpenAI(req, res, oaProvider, 'm');
+    expect(res.statusCode).toBe(401);
+    expect(JSON.parse(res.sentText!).error.code).toBe('invalid_api_key');
+  });
+
+  it('流式 SSE 原样 pipe 回传', async () => {
+    const sseLines = ['data: {"choices":[{"delta":{"content":"hi"}}]}', '', 'data: [DONE]', ''];
+    vi.mocked(sendUpstream).mockResolvedValue({
+      status: 200, headers: { 'content-type': 'text/event-stream' },
+      text: async () => { throw new Error('not called'); },
+      stream: async (onLine: (l: string) => void) => { sseLines.forEach(onLine); },
+    } as any);
+    const { req, res, writes } = mockReqRes({ model: 'deepseek:m', stream: true });
+    await passthroughOpenAI(req, res, oaProvider, 'm');
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['content-type']).toBe('text/event-stream');
+    expect(writes.join('')).toBe(sseLines.map(l => l + '\n').join(''));
+  });
+
+  it('上游连接失败返回 502 OpenAI 格式错误体', async () => {
+    vi.mocked(sendUpstream).mockRejectedValue(new Error('ECONNREFUSED'));
+    const { req, res } = mockReqRes({ model: 'deepseek:m' });
+    await passthroughOpenAI(req, res, oaProvider, 'm');
+    expect(res.statusCode).toBe(502);
+    expect(JSON.parse(res.sentText!).error.type).toBe('api_error');
+  });
+
+  it('baseUrl 已含 /v1 不重复拼接', async () => {
+    vi.mocked(sendUpstream).mockResolvedValue({
+      status: 200, headers: {}, text: async () => '{}', stream: async () => {},
+    } as any);
+    const { req, res } = mockReqRes({ model: 'deepseek:m' });
+    await passthroughOpenAI(req, res, { ...oaProvider, baseUrl: 'https://api.deepseek.com/v1' }, 'm');
+    expect(vi.mocked(sendUpstream).mock.calls[0]![0].url).toBe('https://api.deepseek.com/v1/chat/completions');
   });
 });

@@ -4,6 +4,7 @@ import { AIProviderConfig } from '../types/index.js';
 import { sendUpstream, UpstreamTimeoutError } from './upstream/provider-client.js';
 import { anthropicError } from './anthropic-errors.js';
 import { trimTrailingSlash, UPSTREAM_HEADER_TIMEOUT_MS } from './passthrough.js';
+import { patchCallLog, requestExcerptOf, responseExcerptOf } from './call-log.js';
 
 export async function handleCountTokens(
   req: Request,
@@ -26,9 +27,18 @@ export async function handleCountTokens(
         body: JSON.stringify({ ...(req.body as object), model }),
         timeoutMs: UPSTREAM_HEADER_TIMEOUT_MS,
       });
+      // body 只能读一次（fetch 语义），失败摘要与回传共用同一份
+      const text = await upstream.text().catch(() => '');
+      if (upstream.status !== 200) {
+        patchCallLog(res, { error: `upstream ${upstream.status}`, responseExcerpt: responseExcerptOf(text) });
+      }
       res.status(upstream.status).set('content-type', upstream.headers['content-type'] || 'application/json')
-        .send(await upstream.text());
+        .send(text);
     } catch (error) {
+      patchCallLog(res, {
+        error: `upstream count_tokens failed: ${(error as Error).message}`,
+        requestExcerpt: requestExcerptOf(req),
+      });
       anthropicError(res, 502, 'api_error', `upstream count_tokens failed: ${(error as Error).message}`);
     }
     return;

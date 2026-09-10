@@ -44,6 +44,17 @@ describe('resolveModel', () => {
     expect(() => resolveModel('or:bar', providers)).toThrow(ModelRouteError);
   });
 
+  it('disabledModels 中的模型被网关拒绝', () => {
+    const withDisabled: AIProviderConfig[] = [
+      { ...providers[0], models: ['m1', 'm2'], disabledModels: ['m2'] },
+    ];
+    expect(resolveModel('deepseek:m1', withDisabled).model).toBe('m1');
+    expect(() => resolveModel('deepseek:m2', withDisabled)).toThrow(ModelRouteError);
+    expect(() => resolveModel('deepseek:m2', withDisabled)).toThrowError(/disabled/);
+    // 未配置 disabledModels 不影响寻址
+    expect(resolveModel('deepseek:any-model', providers).model).toBe('any-model');
+  });
+
   it('空串抛错', () => {
     expect(() => resolveModel('', providers)).toThrow(ModelRouteError);
   });

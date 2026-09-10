@@ -66,7 +66,7 @@ export const DashboardPage: React.FC = () => {
   return (
     <div className="flex flex-col gap-4 lg:gap-6">
       <div className="flex items-baseline gap-3">
-        <h1 className="text-xl font-bold">Dashboard</h1>
+        <h1 className="text-xl font-bold">控制台</h1>
         <span className="text-xs text-base-content/50">系统概览与运行状态</span>
       </div>
 

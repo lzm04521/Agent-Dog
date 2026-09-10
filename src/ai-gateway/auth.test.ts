@@ -15,14 +15,14 @@ describe('createGatewayAuth', () => {
   it('x-api-key 通过', () => {
     const auth = createGatewayAuth('sk-test');
     let next = 0;
-    auth({ headers: { 'x-api-key': 'sk-test' } } as any, mockRes(), () => next++);
+    auth({ headers: { 'x-api-key': 'sk-test' }, path: '/v1/messages' } as any, mockRes(), () => next++);
     expect(next).toBe(1);
   });
 
   it('Authorization: Bearer 通过', () => {
     const auth = createGatewayAuth('sk-test');
     let next = 0;
-    auth({ headers: { authorization: 'Bearer sk-test' } } as any, mockRes(), () => next++);
+    auth({ headers: { authorization: 'Bearer sk-test' }, path: '/v1/messages' } as any, mockRes(), () => next++);
     expect(next).toBe(1);
   });
 
@@ -30,7 +30,7 @@ describe('createGatewayAuth', () => {
     const auth = createGatewayAuth('sk-test');
     let next = 0;
     const res = mockRes();
-    auth({ headers: { 'x-api-key': 'bad' } } as any, res, () => next++);
+    auth({ headers: { 'x-api-key': 'bad' }, path: '/v1/messages' } as any, res, () => next++);
     expect(next).toBe(0);
     expect(res.statusCode).toBe(401);
     expect(res.body).toEqual({
@@ -39,10 +39,18 @@ describe('createGatewayAuth', () => {
     });
   });
 
+  it('错误 key 且 /openai 路径返回 401 OpenAI 格式错误体', () => {
+    const auth = createGatewayAuth('sk-test');
+    const res = mockRes();
+    auth({ headers: { 'x-api-key': 'bad' }, path: '/openai/v1/models' } as any, res, () => {});
+    expect(res.statusCode).toBe(401);
+    expect(res.body.error).toEqual({ message: 'invalid x-api-key or bearer token', type: 'invalid_request_error', code: 'invalid_api_key' });
+  });
+
   it('无认证头拒绝', () => {
     const auth = createGatewayAuth('sk-test');
     const res = mockRes();
-    auth({ headers: {} } as any, res, () => { throw new Error('should not call next'); });
+    auth({ headers: {}, path: '/v1/messages' } as any, res, () => { throw new Error('should not call next'); });
     expect(res.statusCode).toBe(401);
   });
 });

@@ -109,12 +109,44 @@ describe('AI providers CRUD API', () => {
     expect(daemonMock.restartAiGateway).toHaveBeenCalled();
   });
 
-  it('网关状态返回默认信息', async () => {
+  it('网关状态回报挂载语义（daemon 无独立实例时端口=Web 端口）', async () => {
     const status = await (await fetch(`${baseUrl}/ai-gateway/status`)).json();
     expect(status.enabled).toBe(true);
-    expect(status.port).toBe(62125);
-    expect(status.running).toBe(false);
+    expect(status.port).toBe(0); // createTestServer 以 port 0 构造（挂载形态回报 Web 端口）
+    expect(status.running).toBe(false); // 测试直接 app.listen，未走 webServer.start()，内部 listening 未知
     expect(status.apiKey).toMatch(/^ad-sk-/);
+  });
+
+  it('网关方言路由挂载在 Web 端口：前缀可达、apiKey 认证、openai 入口错 model 400、不影响 /api', async () => {
+    const root = baseUrl.replace('/api', '');
+    const { apiKey } = await (await fetch(`${baseUrl}/ai-gateway/status`)).json();
+
+    const badSlug = await fetch(`${root}/anthropic/v1/messages`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': apiKey },
+      body: JSON.stringify({ model: 'nope:m', max_tokens: 1, messages: [] }),
+    });
+    expect(badSlug.status).toBe(400);
+
+    const noKey = await fetch(`${root}/anthropic/v1/messages`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+    });
+    expect(noKey.status).toBe(401);
+
+    const badModel = await fetch(`${root}/openai/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-api-key': apiKey },
+      body: '{}',
+    });
+    expect(badModel.status).toBe(400);
+    const badModelJson = await badModel.json();
+    expect(badModelJson.error.code).toBe('model_not_found');
+
+    // 网关中间件对非网关路径放行，/api 正常
+    const webApi = await fetch(`${baseUrl}/ai-providers`);
+    expect(webApi.status).toBe(200);
   });
 
   it('test 与 models 端点', async () => {

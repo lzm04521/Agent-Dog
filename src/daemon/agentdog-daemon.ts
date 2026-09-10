@@ -4,11 +4,11 @@
  */
 
 import { EventEmitter } from 'events';
-import { Server as HttpServer } from 'http';
 import { AgentDogServer } from '../core/agentdog-server.js';
 import { ConfigManager } from '../config/config-manager.js';
 import { StreamableHttpMCPServer } from '../streamable-http-server.js';
 import { AiGatewayServer } from '../ai-gateway/gateway-server.js';
+import type { DaemonWebServer } from './daemon-web-server.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
@@ -29,7 +29,7 @@ export interface DaemonConfig {
 export class AgentDogDaemon extends EventEmitter {
   private mcpServer: AgentDogServer;
   private configManager: ConfigManager;
-  private webServer?: HttpServer;
+  private daemonWebServer?: DaemonWebServer;
   private httpMCPServer?: StreamableHttpMCPServer;
   private aiGateway?: AiGatewayServer;
   // HTTP 模式下的客户端活跃记录（替代原 IPC socket 注册表）
@@ -319,13 +319,37 @@ export class AgentDogDaemon extends EventEmitter {
   // Web server support (optional)
   async startWebServer(port: number): Promise<void> {
     const { DaemonWebServer } = await import('./daemon-web-server.js');
+    // 网关常态由 Web 端口承载（方言路由挂载在 Web 应用上）：
+    // 先停掉 start() 阶段的独立监听；Web 未启动时该监听保留作为回退
+    if (this.aiGateway) {
+      try {
+        await this.aiGateway.stop();
+      } catch (error) {
+        console.error('[DAEMON] Error stopping standalone AI gateway:', error);
+      }
+      this.aiGateway = undefined;
+    }
     const webServer = new DaemonWebServer(this, port, this.configManager.getWebHost());
+    this.daemonWebServer = webServer;
     await webServer.start();
     console.log(`[DAEMON] Web interface started on port ${port}`);
   }
 
   // AI gateway restart after settings change (stop → start)
   async restartAiGateway(): Promise<void> {
+    if (this.daemonWebServer) {
+      // 挂载形态：路由每次请求实时读配置（开关/apiKey/端口），修改即时生效，
+      // 仅需确保独立监听已停，无需重建任何监听
+      if (this.aiGateway) {
+        try {
+          await this.aiGateway.stop();
+        } catch (error) {
+          console.error('[DAEMON] Error stopping AI gateway:', error);
+        }
+        this.aiGateway = undefined;
+      }
+      return;
+    }
     if (this.aiGateway) {
       await this.aiGateway.stop();
       this.aiGateway = undefined;

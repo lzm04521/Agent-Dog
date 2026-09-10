@@ -103,6 +103,23 @@ export interface EnhancedServerLog {
   serverName: string;
 }
 
+// AI 网关单次转发请求流水（后端 GET /api/ai-logs 与 socket 'ai-log' 推送，与 src/types 对齐）
+export interface AiCallLog {
+  id: string;
+  timestamp: string;
+  ingress: 'anthropic' | 'openai';
+  path: string;
+  model: string;
+  providerName: string;
+  upstreamModel: string;
+  status: number;
+  durationMs: number;
+  usage?: { inputTokens?: number; outputTokens?: number };
+  error?: string;
+  requestExcerpt?: string;
+  responseExcerpt?: string;
+}
+
 export interface AppState {
   // 连接状态
   connected: boolean;
@@ -118,17 +135,22 @@ export interface AppState {
 
   // 服务器日志
   serverLogs: Record<string, ServerLog[]>;
-  
+
+  // AI 调用流水（网关转发请求，最新在前）
+  aiLogs: AiCallLog[];
+
   // UI状态
   selectedServer: string | null;
   selectedTool: string | null;
-  
+
   // 操作方法
   setConnected: (connected: boolean) => void;
   setSystemStatus: (status: SystemStatus) => void;
   setTools: (tools: ToolInfo[]) => void;
   addEvent: (event: RealtimeEvent) => void;
   addServerLog: (log: ServerLog) => void;
+  initAiLogs: (rows: AiCallLog[]) => void;
+  addAiLog: (log: AiCallLog) => void;
   setSelectedServer: (server: string | null) => void;
   setSelectedTool: (tool: string | null) => void;
 }

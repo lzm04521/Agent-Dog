@@ -1,4 +1,6 @@
 import { EventEmitter } from 'events';
+import { join } from 'path';
+import { JsonlStore, resolveLogDir } from './jsonl-store.js';
 
 export interface LogEntry {
   timestamp: string;
@@ -16,6 +18,25 @@ export interface ServerLogStats {
   isConnected: boolean;
   connectionAttempts: number;
   lastError?: string;
+}
+
+// MCP 日志时间线：子服务器输出与连接事件的统一落盘（kind 标记行类型）。
+// 惰性单例同 call-log：首次使用才解析 AGENTDOG_LOG_DIR（测试隔离用）。
+let mcpStore: JsonlStore | undefined;
+
+export function getMcpLogStore(): JsonlStore {
+  if (!mcpStore) {
+    mcpStore = new JsonlStore({
+      filePath: join(resolveLogDir(), 'mcp.jsonl'),
+      maxEntries: 500,
+    });
+  }
+  return mcpStore;
+}
+
+// 仅供测试：重置惰性单例
+export function resetMcpLogStoreForTests(): void {
+  mcpStore = undefined;
 }
 
 export class ServerLogManager extends EventEmitter {
@@ -56,6 +77,9 @@ export class ServerLogManager extends EventEmitter {
 
     // Update statistics
     this.updateStats(serverName, logEntry);
+
+    // 统一时间线落盘（MCP 日志页重启后恢复历史的数据源）
+    getMcpLogStore().append({ kind: 'server-log', ...logEntry });
 
     // Emit log event
     this.emit('log-added', { serverName, logEntry });
