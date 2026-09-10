@@ -214,32 +214,43 @@ export class ToolRouter extends EventEmitter {
 
     // Step 1: Collect tools from all servers, with server info
     const allServerTools: Array<{tool: MCPTool, serverName: string}> = [];
-    
-    for (const adapter of connectedAdapters) {
-      let serverTools = this.toolsByServer.get(adapter.name) || [];
-      
-      // If cache is empty or force refresh, try to get in real-time
-      if (serverTools.length === 0 || forceRefresh) {
-        try {
-          console.error(`Real-time fetching tools from ${adapter.name}...`);
-          const freshTools = await Promise.race([
-            adapter.getTools(),
-            new Promise<never>((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout')), 8000)
-            )
-          ]);
-          
+
+    // 实时拉取并行执行：串行逐个 await 时，多个慢/半死 server 的 8s 超时会累计，
+    // 导致 tools/list 总耗时突破客户端 30s 连接超时
+    const staleAdapters = connectedAdapters.filter(adapter =>
+      forceRefresh || (this.toolsByServer.get(adapter.name)?.length ?? 0) === 0
+    );
+
+    if (staleAdapters.length > 0) {
+      console.error(`Real-time fetching tools from ${staleAdapters.length} servers in parallel...`);
+      const fetchTimeoutMs = 8000;
+      const results = await Promise.allSettled(staleAdapters.map(async adapter => {
+        const freshTools = await Promise.race([
+          adapter.getTools(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), fetchTimeoutMs)
+          )
+        ]);
+        return { adapter, freshTools };
+      }));
+
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          const { adapter, freshTools } = result.value;
           if (freshTools.length > 0) {
             this.toolsByServer.set(adapter.name, freshTools);
-            serverTools = freshTools;
             console.error(`✅ Got ${freshTools.length} tools from ${adapter.name}`);
           }
-        } catch (error) {
-          console.error(`⚠️ Failed to fetch tools from ${adapter.name}: ${(error as Error).message}`);
+        } else {
+          console.error(`⚠️ Failed to fetch tools from a server: ${(result.reason as Error)?.message}`);
           // Continue with cached tools (if any)
         }
       }
-      
+    }
+
+    for (const adapter of connectedAdapters) {
+      const serverTools = this.toolsByServer.get(adapter.name) || [];
+
       // Add enabled tools to the list
       for (const tool of serverTools) {
         if (this.isToolEnabled(adapter.name, tool.name)) {

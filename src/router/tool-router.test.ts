@@ -124,7 +124,7 @@ describe('ToolRouter', () => {
   it('should remove routes when an adapter disconnects', async () => {
     const mockTools: MCPTool[] = [{ name: 'tool1', description: 'desc1', inputSchema: { type: 'object' } }];
     const adapter = new MockAdapter('server1', mockTools);
-    
+
     toolRouter.addAdapter(adapter);
     await adapter.connect();
 
@@ -135,5 +135,56 @@ describe('ToolRouter', () => {
 
     const route = toolRouter.findToolRoute('tool1');
     expect(route).toBeUndefined();
+  });
+
+  it('should not block fast adapters when a slow adapter is refreshed in parallel', async () => {
+    // 3 个慢 adapter 各 1200ms：并行总耗时 ≈1.2s（max），串行实现累计 ≈3.6s（Σ）
+    const makeSlow = (name: string) => {
+      const tools: MCPTool[] = [{ name: `tool_${name}`, description: name, inputSchema: { type: 'object' } }];
+      const adapter = new MockAdapter(name, tools);
+      adapter.getTools = vi.fn(async () => {
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        return tools;
+      });
+      return adapter;
+    };
+    const s1 = makeSlow('s1');
+    const s2 = makeSlow('s2');
+    const s3 = makeSlow('s3');
+
+    toolRouter.addAdapter(s1);
+    toolRouter.addAdapter(s2);
+    toolRouter.addAdapter(s3);
+    await s1.connect();
+    await s2.connect();
+    await s3.connect();
+
+    const start = Date.now();
+    const allTools = await toolRouter.getAllTools(true); // force refresh 走实时拉取
+    const elapsed = Date.now() - start;
+
+    // 串行实现会累计到 ~3.6s；并行实现 ~1.2s，留出余量断言
+    expect(elapsed).toBeLessThan(2500);
+    expect(allTools.map(t => t.name)).toEqual(['tool_s1', 'tool_s2', 'tool_s3']);
+  });
+
+  it('should keep other servers\u2019 tools when one adapter fails to fetch', async () => {
+    const okTools: MCPTool[] = [{ name: 'ok_tool', description: 'ok', inputSchema: { type: 'object' } }];
+    const broken = new MockAdapter('broken', []);
+    const ok = new MockAdapter('ok', okTools);
+
+    broken.getTools = vi.fn(async (): Promise<MCPTool[]> => {
+      throw new Error('connection refused');
+    });
+
+    toolRouter.addAdapter(broken);
+    toolRouter.addAdapter(ok);
+    await broken.connect();
+    await ok.connect();
+
+    const allTools = await toolRouter.getAllTools(true);
+
+    expect(allTools.map(t => t.name)).toContain('ok_tool');
+    expect(broken.getTools).toHaveBeenCalled();
   });
 });

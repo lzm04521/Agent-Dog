@@ -104,7 +104,9 @@ export class AgentDogDaemon extends EventEmitter {
           this.mcpServer.updateServerTools(serverName);
         }
       } else {
-        this.handleConfigChange(data.config);
+        // 全量重载由 AgentDogServer 自己的 'config-updated' 监听统一执行（reinitializeAdapters，
+        // 增量重建 + 后台连接）；此处不再 stop/start，否则所有 adapter 会被拆除重建两次
+        console.log('[DAEMON] Full config reload delegated to AgentDogServer');
       }
     });
 
@@ -148,15 +150,6 @@ export class AgentDogDaemon extends EventEmitter {
         config: adapter.config
       }))
     };
-  }
-
-  private async handleConfigChange(config: any) {
-    console.log('[DAEMON] Config changed, reloading servers...');
-    // Reinitialize servers
-    await this.mcpServer.stop();
-    await this.mcpServer.start();
-    
-    this.broadcastToClients('status-update', this.getFullStatus()); // Explicitly broadcast status after server restart
   }
 
   private async initializeMCPServer() {

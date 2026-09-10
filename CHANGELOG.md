@@ -2,6 +2,19 @@
 
 本项目所有显著变更都会记录在此文件中。
 
+## [未发布] - 2026-09-10
+
+- **同步（上游合并）**：合并上游 `SIE-Operations-and-Maintenance-Team/mcpdog`（@keysqiu/mcpdog 1.0.6~1.0.8）以下变更，并适配 AgentDog 单 Web 端口架构：
+  - **新增**：Web 管理界面一键导入 Claude MCP——读取 `~/.claude.json` 顶层用户级 `mcpServers` 批量导入（先预览将导入/将跳过清单再确认；同名冲突、名称不合规或缺 `command`/`url` 的条目跳过并注明原因；`disabled` 条目按禁用状态导入；导入成功的启用服务器自动连接）。读取与转换在 daemon 本机完成，导入逻辑抽离为纯函数模块 `claude-mcp-importer` 并补齐单测。
+  - **修复（关键）**：直接编辑 `agentdog.config.json` 后 daemon 永不重载——配置 watch 曾发出 `configChanged` 事件而 daemon 监听 `config-updated`，事件名不匹配导致文件级配置变更被静默忽略；现统一为 `config-updated`，支持编辑器"临时文件 + rename"式保存，并加 300ms 防抖合并同一次保存的多次事件。
+  - **修复**：核心服务 `stop()` 未重置 `isStarted` 防重入标记，stop→start 序列中 start 被跳过导致所有适配器断开后无人重连。
+  - **优化**：`tools/list` 实时拉取由串行改为并行（`Promise.allSettled`，单 server 保留 8 秒超时上限），多下游异常时不再累计突破 MCP 客户端连接超时。
+  - **新增**：daemon 启动即把 stdout/stderr 同步落盘到 `~/.agentdog/daemon-YYYYMMDD.log`（detached + stdio ignore 启动时运行日志此前全部丢弃）。
+  - **新增**：proxy 长会话自愈——daemon 意外退出后自动重新拉起（30 秒冷却防频繁 spawn），适配本地 daemon HTTP 探活模型（连接失败与请求失败两条路径触发）；daemon 存活检测在 PID 存活外增加端口握手双重校验（防 Windows 重启后 PID 复用误判）；自动拉起后由固定等待 2 秒改为端口就绪轮询（至多 15 秒）。
+  - **优化**：配置全量重载统一由核心服务 `reinitializeAdapters` 执行（增量重建 + 后台连接），移除 daemon 层重复的 stop/start 全量重建路径。
+  - Web 管理界面 favicon 更换为 🐕。
+- **未采纳（上游 1.0.6）**：`mcpdog service install/uninstall/status` 命令未合入——本地已有等价实现 `agentdog daemon autostart --enable/--disable`（AgentDog 更名后的自启体系），避免两套并存。
+
 ## [1.2.0] - 2026-09-07
 
 - **调整（Web 界面）**：侧边栏底部版本号/配置路径移除，配置文件路径改由顶栏展示（窄屏自动隐藏，悬停显示全路径，版本号保留在顶栏运行状态徽章内）；"AI 供应商"页布局重排——页头（标题 + 数量徽章 + 右侧新增按钮）→ 网关设置压缩为单行横条卡（开关/运行徽章/监听地址/apiKey 管理），移除 Claude Code 接入配置卡片（环境变量示例与一键复制）。

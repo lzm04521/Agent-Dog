@@ -20,6 +20,7 @@ interface ConfigState {
   // Modal states
   showAddServerModal: boolean;
   showClientConfigModal: boolean;
+  showClaudeImportModal: boolean;
   
   // Actions
   loadConfig: () => Promise<void>;
@@ -37,6 +38,8 @@ interface ConfigState {
   hideAddServer: () => void;
   showClientConfig: () => void;
   hideClientConfig: () => void;
+  showClaudeImport: () => void;
+  hideClaudeImport: () => void;
   
   // Tool management
   updateServerTools: (serverName: string, toolsConfig: any) => Promise<void>;
@@ -63,6 +66,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   authToken: null,
   showAddServerModal: false,
   showClientConfigModal: false,
+  showClaudeImportModal: false,
 
   // Actions
   loadConfig: async () => {
@@ -329,6 +333,14 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   hideClientConfig: () => {
     console.log('[ConfigStore] Hiding client config modal.');
     set({ showClientConfigModal: false });
+  },
+  showClaudeImport: () => {
+    console.log('[ConfigStore] Showing claude import modal.');
+    set({ showClaudeImportModal: true });
+  },
+  hideClaudeImport: () => {
+    console.log('[ConfigStore] Hiding claude import modal.');
+    set({ showClaudeImportModal: false });
   },
 
   // Client config generation

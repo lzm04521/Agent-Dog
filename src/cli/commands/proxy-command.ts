@@ -9,6 +9,7 @@ import { StreamableHttpMCPServer } from '../../streamable-http-server.js';
 import { readDaemonInfo, isProcessAlive } from '../../daemon/daemon-info.js';
 import { promises as fs } from 'fs';
 import { spawn } from 'child_process';
+import { Socket } from 'net';
 import path from 'path';
 import os from 'os';
 
@@ -63,17 +64,25 @@ export class ProxyCommand {
       const webPort = this.configManager.getWebPort() ?? 61125;
 
       // Check if daemon is running, auto-start if not
-      const isDaemonRunning = await this.isDaemonRunning(pidFile);
+      const isDaemonRunning = await this.isDaemonRunning(pidFile, webPort);
 
       if (!isDaemonRunning) {
         // Auto-start daemon; web port 由 daemon 端口决策链自行决定，不传参
         await this.autoStartDaemonSilent(pidFile);
-        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // 等待 daemon 的 Web 端口真正开始监听（npx 冷启动时固定等待不可靠），
+        // 超时后仍交给 StdioProxy 做最终连接判定
+        await this.waitForDaemonPort(webPort, 15000);
       }
 
       // In MCP stdio mode, don't output any debug logs to stderr
+      // All non-JSON output will be mistaken as responses by MCP clients
+
       const { StdioProxy } = await import('../../daemon/stdio-proxy.js');
-      const proxy = new StdioProxy(webPort);
+      const proxy = new StdioProxy(webPort, {
+        // daemon 半路被杀时，由 proxy 自动重新拉起，长会话可自愈
+        autoRestart: () => this.autoStartDaemonSilent(pidFile)
+      });
 
       process.on('SIGINT', () => process.exit(0));
       process.on('SIGTERM', () => process.exit(0));
@@ -126,9 +135,11 @@ export class ProxyCommand {
   }
 
   /**
-   * Check if daemon is running by checking PID file (shared dual-format parser)
+   * Check if daemon is running by checking PID file (shared dual-format parser).
+   * PID 存活还需要端口握手确认：Windows 重启后 PID 可能被无关进程复用，
+   * 仅凭进程存在会误判 daemon 在运行而跳过拉起。
    */
-  private async isDaemonRunning(pidFile: string): Promise<boolean> {
+  private async isDaemonRunning(pidFile: string, webPort: number): Promise<boolean> {
     const info = await readDaemonInfo(pidFile);
     if (!info) return false;
 
@@ -141,7 +152,49 @@ export class ProxyCommand {
       }
       return false;
     }
+
+    // 进程存在但目标端口无监听 → PID 已被复用或 daemon 已死，按未运行处理
+    const portListening = await this.isPortListening(webPort);
+    if (!portListening) {
+      try {
+        await fs.unlink(pidFile);
+      } catch {
+        // Ignore errors when cleaning up
+      }
+      return false;
+    }
     return true;
+  }
+
+  /**
+   * Probe whether the daemon port (Web 端口，daemon 与其合并监听) is accepting connections
+   */
+  private async isPortListening(port: number, timeoutMs = 800): Promise<boolean> {
+    return new Promise((resolve) => {
+      const socket = new Socket();
+      const done = (result: boolean) => {
+        socket.destroy();
+        resolve(result);
+      };
+      socket.setTimeout(timeoutMs);
+      socket.once('connect', () => done(true));
+      socket.once('timeout', () => done(false));
+      socket.once('error', () => done(false));
+      socket.connect(port, 'localhost');
+    });
+  }
+
+  /**
+   * Poll the daemon port until it starts listening or timeout
+   */
+  private async waitForDaemonPort(port: number, timeoutMs: number, intervalMs = 500): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      if (await this.isPortListening(port)) {
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+    }
   }
 
   /**

@@ -8,12 +8,14 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
-import { readFileSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
+import { homedir } from 'os';
 import { fileURLToPath } from 'url';
 import { AgentDogDaemon } from './agentdog-daemon.js';
 import { ConfigManager } from '../config/config-manager.js';
 import { globalLogManager } from '../logging/server-log-manager.js';
 import { ServerNameValidator } from '../utils/server-name-validator.js';
+import { parseClaudeJson, buildImportPlan, ClaudeMCPEntry } from '../utils/claude-mcp-importer.js';
 import { createExpressAuthMiddleware } from '../middleware/auth.js';
 import { randomUUID } from 'crypto';
 import { AIProviderConfig } from '../types/index.js';
@@ -165,6 +167,10 @@ export class DaemonWebServer {
     // Config management API
     router.get('/config', this.handleGetConfig.bind(this));
     router.put('/config', this.handleUpdateConfig.bind(this));
+
+    // Claude .claude.json 一键导入 API
+    router.get('/import/claude/preview', this.handleClaudeImportPreview.bind(this));
+    router.post('/import/claude', this.handleClaudeImport.bind(this));
     
     // Daemon-specific API
     router.get('/daemon/clients', this.handleGetClients.bind(this));
@@ -1132,6 +1138,103 @@ export class DaemonWebServer {
         error: '更新配置失败',
         message: (error as Error).message
       });
+    }
+  }
+
+  // Claude .claude.json 一键导入相关私有方法
+  private getClaudeImportSource(): string {
+    return path.join(homedir(), '.claude.json');
+  }
+
+  private readClaudeMCPServers(): Record<string, ClaudeMCPEntry> {
+    const source = this.getClaudeImportSource();
+    if (!existsSync(source)) {
+      const error = new Error(`未找到 Claude 配置文件: ${source}`);
+      (error as any).statusCode = 404;
+      throw error;
+    }
+
+    let content: string;
+    try {
+      content = readFileSync(source, 'utf-8');
+    } catch (error) {
+      const wrapped = new Error(`读取 Claude 配置文件失败: ${source}`);
+      (wrapped as any).statusCode = 500;
+      throw wrapped;
+    }
+
+    return parseClaudeJson(content);
+  }
+
+  private buildClaudeImportPlan(source: string, entries: Record<string, ClaudeMCPEntry>) {
+    const configManager = this.daemon['configManager'];
+    const existingNames = Object.keys(configManager.getConfig().servers || {});
+    return buildImportPlan({
+      source,
+      entries,
+      existingNames,
+      validateName: (name) => ServerNameValidator.validateServerName(name),
+    });
+  }
+
+  // 预览：只读 ~/.claude.json 并返回「将导入 / 将跳过」清单，不产生任何写入
+  private async handleClaudeImportPreview(req: express.Request, res: express.Response) {
+    try {
+      const source = this.getClaudeImportSource();
+      const entries = this.readClaudeMCPServers();
+      const plan = this.buildClaudeImportPlan(source, entries);
+
+      // 预览不返回完整配置，避免泄露 env 中的密钥等敏感信息
+      res.json({
+        source: plan.source,
+        servers: plan.items.map(({ name, transport, status, reason }) => ({
+          name,
+          transport,
+          status,
+          reason,
+        })),
+        counts: plan.counts,
+      });
+    } catch (error) {
+      const statusCode = (error as any).statusCode || 500;
+      res.status(statusCode).json({ error: (error as Error).message });
+    }
+  }
+
+  // 导入：仅添加 new 组条目，冲突/无效跳过；有新增则保存并重载配置以启动启用的服务器
+  private async handleClaudeImport(req: express.Request, res: express.Response) {
+    try {
+      const source = this.getClaudeImportSource();
+      const entries = this.readClaudeMCPServers();
+      const plan = this.buildClaudeImportPlan(source, entries);
+      const configManager = this.daemon['configManager'];
+
+      const added: Array<{ name: string; transport?: string }> = [];
+      const skipped: Array<{ name: string; reason: string }> = [];
+
+      for (const item of plan.items) {
+        if (item.status === 'new' && item.config) {
+          try {
+            configManager.addServer(item.name, item.config);
+            added.push({ name: item.name, transport: item.transport });
+          } catch (error) {
+            skipped.push({ name: item.name, reason: (error as Error).message });
+          }
+        } else {
+          skipped.push({ name: item.name, reason: item.reason || '已存在或无效' });
+        }
+      }
+
+      if (added.length > 0) {
+        await configManager.saveConfig();
+        // reloadConfig 会 loadConfig 并重建 adapter，启用状态的服务器随即连接
+        await this.daemon['reloadConfig']();
+      }
+
+      res.json({ source: plan.source, added, skipped, counts: plan.counts });
+    } catch (error) {
+      const statusCode = (error as any).statusCode || 500;
+      res.status(statusCode).json({ error: (error as Error).message });
     }
   }
 

@@ -7,6 +7,7 @@ import { ConfigManager } from '../../config/config-manager.js';
 import { AgentDogDaemon } from '../../daemon/agentdog-daemon.js';
 import { DaemonClient } from '../../daemon/daemon-client.js';
 import { readDaemonInfo } from '../../daemon/daemon-info.js';
+import { startDaemonFileLogging } from '../../logging/daemon-file-logger.js';
 import fs from 'fs/promises';
 import { readFileSync } from 'fs';
 import path from 'path';
@@ -163,6 +164,11 @@ export class DaemonCommands {
         await this.configManager.setAIGateway(gatewayCfg);
         CLIUtils.info(`AI gateway enabled, port saved to config: ${gatewayPort}`);
       }
+
+      // daemon 通常以 detached + stdio:'ignore' 启动，输出全部丢弃；先开启文件日志再初始化，
+      // 后续所有启动/运行日志都有据可查
+      const daemonLogFile = startDaemonFileLogging(this.agentdogDir);
+      CLIUtils.info(`Daemon log file: ${daemonLogFile}`);
 
       const daemon = new AgentDogDaemon({
         configPath: this.configManager.getConfigPath(),
